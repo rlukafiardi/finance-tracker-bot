@@ -61,13 +61,19 @@ function parseMessage_(text, todayLabel, cats) {
       responseSchema: RESPONSE_SCHEMA,
     },
   };
-  const res = UrlFetchApp.fetch(url, {
+  const options = {
     method: 'post',
     contentType: 'application/json',
     headers: { 'x-goog-api-key': prop_('GEMINI_API_KEY') },
     payload: JSON.stringify(body),
     muteHttpExceptions: true,
-  });
+  };
+  // Retry rate limits and temporary overloads (429, 5xx) with a short backoff.
+  let res = UrlFetchApp.fetch(url, options);
+  for (let attempt = 1; attempt < 3 && (res.getResponseCode() === 429 || res.getResponseCode() >= 500); attempt++) {
+    Utilities.sleep(attempt * 2000);
+    res = UrlFetchApp.fetch(url, options);
+  }
   if (res.getResponseCode() !== 200) {
     throw new Error('Gemini ' + res.getResponseCode() + ': ' + res.getContentText().slice(0, 300));
   }
