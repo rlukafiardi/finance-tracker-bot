@@ -26,6 +26,12 @@ and the dashboard answers "how much did I spend / save this month".
   transactions, so one message can log several rows. Code validates before writing. Model name is the
   `GEMINI_MODEL` script property because free-tier quotas can change.
 - 2026-10-27: "Correct" always edits the last row of `transactions`.
+- 2026-10-28: Model is `gemini-3.5-flash-lite` (free: 15 RPM, 500 RPD on my project). Full `gemini-3.8-flash` only
+  gets 20 RPD, and `gemini-2.5-flash` returns 404 for new accounts. Prompt passed 15/15 examples on it.
+- 2026-10-28: Account balances: new `transfer` type (account -> to_account, category "Transfer", excluded from
+  spending/income/savings-rate) and an `accounts` tab (opening balance). Saving deducts from its source account.
+  Unknown accounts are auto-created with opening balance 0. `to_account` is the last column so old sheets only need that header.
+- 2026-10-28: Slash commands (/help, /saldo, /akun, /kategori) are handled in code, not by Gemini, so they cost no quota.
 
 ## Status
 - Works: repo (private, rlukafiardi/finance-tracker-bot), full Apps Script code written, NOT yet run or deployed.

@@ -19,7 +19,15 @@ const EXAMPLES = [
   { message: 'savings rate bulan ini?', expect: { intent: 'query', transactions: [], query: { metric: 'savings_rate', period: 'month' } } },
   { message: 'makan di warteg', expect: { intent: 'other', transactions: [] } },
   { message: 'halo', expect: { intent: 'other', transactions: [] } },
+  { message: 'top up gopay pake bni 200k', expect: { intent: 'log', transactions: [{ amount: 200000, type: 'transfer', category: 'Transfer', account: 'BNI', to_account: 'GoPay' }] } },
+  { message: 'tap lrt 17k pake gopay', expect: { intent: 'log', transactions: [{ amount: 17000, type: 'expense', category: 'Transport', account: 'GoPay', merchant: 'LRT' }] } },
+  { message: 'tarik tunai 500rb dari bca', expect: { intent: 'log', transactions: [{ amount: 500000, type: 'transfer', account: 'BCA', to_account: 'Cash' }] } },
+  { message: 'saldo gopay berapa?', expect: { intent: 'query', transactions: [], query: { metric: 'account_balance', account: 'GoPay' } } },
+  { message: 'salah, pakai bca', expect: { intent: 'correct', transactions: [], correction: { account: 'BCA' } } },
 ];
+
+// Fixed accounts keep the tests independent of what is in the real accounts tab.
+const EXAMPLES_ACCOUNTS = [{ name: 'BNI', opening: 0 }, { name: 'GoPay', opening: 0 }, { name: 'BCA', opening: 0 }, { name: 'Cash', opening: 0 }];
 
 function same_(a, b) {
   return String(a).toLowerCase() === String(b).toLowerCase();
@@ -50,12 +58,12 @@ function diff_(expect, got) {
 }
 
 function runExamples() {
-  const cats = getCategories_();
+  const ctx = { cats: getCategories_(), accounts: EXAMPLES_ACCOUNTS };
   let pass = 0;
   EXAMPLES.forEach(function (ex, i) {
     let problems;
     try {
-      problems = diff_(ex.expect, parseMessage_(ex.message, EXAMPLES_TODAY, cats));
+      problems = diff_(ex.expect, parseMessage_(ex.message, EXAMPLES_TODAY, ctx));
     } catch (err) {
       problems = ['error: ' + err.message];
     }

@@ -14,9 +14,10 @@ const RESPONSE_SCHEMA = {
         properties: {
           date: { type: 'STRING' },
           amount: { type: 'INTEGER' },
-          type: { type: 'STRING', enum: ['expense', 'income', 'saving'] },
+          type: { type: 'STRING', enum: ['expense', 'income', 'saving', 'transfer'] },
           category: { type: 'STRING' },
           account: { type: 'STRING', nullable: true },
+          to_account: { type: 'STRING', nullable: true },
           merchant: { type: 'STRING', nullable: true },
           note: { type: 'STRING', nullable: true },
         },
@@ -31,15 +32,17 @@ const RESPONSE_SCHEMA = {
         category: { type: 'STRING', nullable: true },
         type: { type: 'STRING', nullable: true },
         date: { type: 'STRING', nullable: true },
+        account: { type: 'STRING', nullable: true },
       },
     },
     query: {
       type: 'OBJECT',
       nullable: true,
       properties: {
-        metric: { type: 'STRING', enum: ['spending', 'income', 'saving', 'savings_rate', 'balance'] },
-        period: { type: 'STRING', enum: ['today', 'week', 'month', 'custom'] },
+        metric: { type: 'STRING', enum: ['spending', 'income', 'saving', 'savings_rate', 'balance', 'account_balance'] },
+        period: { type: 'STRING', enum: ['today', 'week', 'month', 'custom'], nullable: true },
         category: { type: 'STRING', nullable: true },
+        account: { type: 'STRING', nullable: true },
       },
     },
     reply_hint: { type: 'STRING', nullable: true },
@@ -48,12 +51,12 @@ const RESPONSE_SCHEMA = {
 };
 
 // todayLabel is optional (tests pin it); defaults to now in Asia/Jakarta.
-function parseMessage_(text, todayLabel, cats) {
+function parseMessage_(text, todayLabel, ctx) {
   const today = todayLabel || Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd (EEEE)');
   const model = PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL') || DEFAULT_MODEL;
   const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent';
   const body = {
-    systemInstruction: { parts: [{ text: buildPrompt_(today, cats) }] },
+    systemInstruction: { parts: [{ text: buildPrompt_(today, ctx) }] },
     contents: [{ role: 'user', parts: [{ text: text }] }],
     generationConfig: {
       temperature: 0,

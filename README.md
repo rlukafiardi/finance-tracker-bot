@@ -16,9 +16,11 @@ Looker Studio reads the Sheet for spending, income and savings. Runs entirely on
 
 Google Sheet with two tabs.
 
-`transactions`: `id, date, amount, type, category, account, merchant, note, raw_message, created_at`
-(`type` is expense, income or saving).
+`transactions`: `id, date, amount, type, category, account, merchant, note, raw_message, created_at, to_account`
+(`type` is expense, income, saving or transfer; `to_account` is only used by transfers).
 `categories`: `type, category`. Seeded by `setup()` with the defaults in `apps-script/Setup.gs`.
+`accounts`: `account, opening_balance`. Balance = opening balance + income - expense - saving, with transfers
+moving money between accounts. Unknown accounts are created automatically with opening balance 0.
 
 ## Layout
 
@@ -54,5 +56,9 @@ Never put tokens in the code or in git; they live only in Script Properties.
 ## Bot commands (just type them)
 
 - Log: "makan siang 35rb gofood", "gaji 15jt", "nabung 2jt", "kemarin grab 28k", "kopi 25rb, parkir 5rb"
-- Fix the last entry: "ubah yang tadi jadi 40rb", "salah, harusnya transport"
-- Ask: "pengeluaran minggu ini?", "savings rate bulan ini?", "sisa kas bulan ini?"
+- With accounts: "tap lrt 17k pake gopay" (expense from GoPay), "top up gopay pake bni 200k" (transfer BNI -> GoPay)
+- Fix the last entry: "ubah yang tadi jadi 40rb", "salah, harusnya transport", "salah, pakai bca"
+- Ask: "pengeluaran minggu ini?", "savings rate bulan ini?", "sisa kas bulan ini?", "saldo gopay?"
+- Slash commands (no Gemini call): `/help`, `/saldo`, `/akun BNI 1,5jt` (add account or set opening balance),
+  `/kategori` (list), `/kategori expense Hobi` (add category)
+- Optional script property `DEFAULT_ACCOUNT`: used when a message names no account.

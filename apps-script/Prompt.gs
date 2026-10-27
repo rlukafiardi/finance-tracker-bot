@@ -1,9 +1,13 @@
 // Gemini system prompt. Source of truth for the parsing rules.
+// ctx = { cats: {expense, income, saving}, accounts: [{name, opening}] }
 
-function buildPrompt_(today, cats) {
+function buildPrompt_(today, ctx) {
   const categoryLines = TYPES.map(function (t) {
-    return '- ' + t + ': ' + cats[t].join(', ');
+    return '- ' + t + ': ' + ctx.cats[t].join(', ');
   }).join('\n');
+  const accountList = ctx.accounts.length
+    ? ctx.accounts.map(function (a) { return a.name; }).join(', ')
+    : '(none yet)';
 
   return [
     'You extract personal finance transactions from short chat messages in Bahasa Indonesia or English.',
@@ -13,20 +17,31 @@ function buildPrompt_(today, cats) {
     '',
     'Rules:',
     '- amount: positive integer in IDR. "35rb"/"35k" = 35000, "15jt" = 15000000, "1,5jt" = 1500000, "2.500.000" = 2500000.',
-    '- type: "expense" (money spent), "income" (money received: gaji, bonus, transfer masuk),',
-    '  "saving" (money moved to savings, emergency fund or investment: nabung, tabung, beli reksadana/saham/emas).',
-    '- category: pick exactly one from the allowed list for that type. If nothing fits, use "Lainnya" when the type has it.',
+    '- type: "expense" (money spent), "income" (money received: gaji, bonus, transfer masuk from someone else),',
+    '  "saving" (money moved to savings, emergency fund or investment: nabung, tabung, beli reksadana/saham/emas),',
+    '  "transfer" (money moved between the user\'s own accounts or wallets: top up e-wallet, tarik tunai,',
+    '  pindah saldo, transfer ke rekening sendiri).',
+    '- category: for expense/income/saving pick exactly one from the allowed list for that type.',
+    '  If nothing fits, use "Lainnya" when the type has it. For transfer always use "Transfer".',
+    '- account: where the money of this transaction is, e.g. "pake gopay", "dari bca", "masuk bni". Use the exact name',
+    '  from the known accounts when the user means one of them (ignore case), otherwise the name as written. null if not mentioned.',
+    '- Transfers: account = the source (money leaves it), to_account = the destination (money arrives).',
+    '  "top up gopay pake bni 200k" -> account BNI, to_account GoPay. "tarik tunai 500rb dari bca" -> account BCA, to_account Cash.',
+    '  "transfer dari bca ke jago 1jt" -> account BCA, to_account Jago. For non-transfer types, to_account is null.',
+    '- If a fee is mentioned ("admin 1.5k"), add it as a separate expense transaction on the same account.',
     '- date: YYYY-MM-DD. Default to today. Resolve "kemarin", "tadi pagi", "senin lalu" against today.',
-    '- account: wallet or bank if mentioned (BCA, Gopay, OVO, cash, ...), else null.',
-    '- merchant: shop or service if mentioned (Gofood, Indomaret, Grab, ...), else null.',
+    '- merchant: shop or service if mentioned (Gofood, Indomaret, Grab, LRT, ...), else null.',
     '- note: short free text only if it adds meaning, else null.',
     '- intent: "log" for new transactions; "correct" if the user edits the previous entry',
-    '  ("ubah yang tadi jadi 40rb", "salah, harusnya transport"); "query" if asking for a summary',
-    '  ("pengeluaran minggu ini?"); "other" for anything else. For non-"log" intents, return an empty transactions list',
+    '  ("ubah yang tadi jadi 40rb", "salah, harusnya transport", "salah, pakai bca"); "query" if asking for a summary',
+    '  ("pengeluaran minggu ini?") or an account balance ("saldo gopay?", metric account_balance, account = that name,',
+    '  null for all accounts); "other" for anything else. For non-"log" intents, return an empty transactions list',
     '  and fill `correction` or `query` instead.',
     '- Never invent amounts. If the amount is missing or unclear, set intent "other" and explain in `reply_hint`.',
     '',
     'Allowed categories:',
     categoryLines,
+    '',
+    'Known accounts: ' + accountList,
   ].join('\n');
 }

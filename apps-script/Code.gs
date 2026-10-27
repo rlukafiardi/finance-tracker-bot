@@ -1,4 +1,4 @@
-// Telegram webhook entry point. Flow: auth check -> dedupe -> Gemini parse -> route by intent -> reply.
+// Telegram webhook entry point. Flow: auth check -> dedupe -> slash command or Gemini parse -> route by intent -> reply.
 
 const TZ = 'Asia/Jakarta';
 
@@ -6,6 +6,10 @@ function prop_(name) {
   const value = PropertiesService.getScriptProperties().getProperty(name);
   if (!value) throw new Error('Missing script property: ' + name);
   return value;
+}
+
+function optionalProp_(name) {
+  return PropertiesService.getScriptProperties().getProperty(name) || '';
 }
 
 function ok_() {
@@ -46,17 +50,21 @@ function isDuplicate_(updateId) {
 function handleMessage_(msg) {
   const chatId = msg.chat.id;
   try {
-    const cats = getCategories_();
-    const parsed = parseMessage_(msg.text, null, cats);
+    const ctx = { cats: getCategories_(), accounts: getAccounts_() };
     let reply;
-    if (parsed.intent === 'log') {
-      reply = logTransactions_(parsed.transactions || [], msg.text, cats, parsed.reply_hint);
-    } else if (parsed.intent === 'correct') {
-      reply = correctLast_(parsed.correction, cats);
-    } else if (parsed.intent === 'query') {
-      reply = answerQuery_(parsed.query);
+    if (msg.text.charAt(0) === '/') {
+      reply = handleCommand_(msg.text, ctx);
     } else {
-      reply = parsed.reply_hint || 'Maaf, tidak paham. Contoh: "makan siang 35rb gofood", "gaji 15jt", "nabung 2jt".';
+      const parsed = parseMessage_(msg.text, null, ctx);
+      if (parsed.intent === 'log') {
+        reply = logTransactions_(parsed.transactions || [], msg.text, ctx, parsed.reply_hint);
+      } else if (parsed.intent === 'correct') {
+        reply = correctLast_(parsed.correction, ctx);
+      } else if (parsed.intent === 'query') {
+        reply = answerQuery_(parsed.query, ctx);
+      } else {
+        reply = parsed.reply_hint || 'Maaf, tidak paham. Ketik /help untuk contoh.';
+      }
     }
     sendMessage_(chatId, reply);
   } catch (err) {
