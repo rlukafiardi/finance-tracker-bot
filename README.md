@@ -21,6 +21,7 @@ Google Sheet with two tabs.
 `categories`: `type, category`. Seeded by `setup()` with the defaults in `apps-script/Setup.gs`.
 `accounts`: `account, opening_balance`. Balance = opening balance + income - expense - saving, with transfers
 moving money between accounts. Unknown accounts are created automatically with opening balance 0.
+`budgets`: `category, monthly_limit` (expense categories only).
 
 ## Layout
 
@@ -59,6 +60,9 @@ Never put tokens in the code or in git; they live only in Script Properties.
 - With accounts: "tap lrt 17k pake gopay" (expense from GoPay), "top up gopay pake bni 200k" (transfer BNI -> GoPay)
 - Fix the last entry: "ubah yang tadi jadi 40rb", "salah, harusnya transport", "salah, pakai bca"
 - Ask: "pengeluaran minggu ini?", "savings rate bulan ini?", "sisa kas bulan ini?", "saldo gopay?"
+- Delete and history: "hapus yang tadi" (removes everything the latest message logged), "5 transaksi terakhir"
 - Slash commands (no Gemini call): `/help`, `/saldo`, `/akun BNI 1,5jt` (add account or set opening balance),
-  `/kategori` (list), `/kategori expense Hobi` (add category)
+  `/kategori` (list), `/kategori expense Hobi` (add category), `/budget` (status), `/budget makan 1,5jt`
+  (monthly limit, 0 removes it), `/terakhir [n]` (latest entries with id), `/hapus [id]` (latest message, or one row by id)
+- Budgets: after an expense, the reply warns when its category has used 80% or more of this month's budget.
 - Optional script property `DEFAULT_ACCOUNT`: used when a message names no account.

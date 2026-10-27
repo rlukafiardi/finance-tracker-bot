@@ -35,6 +35,7 @@ function setup() {
   }
 
   accountsSheet_();
+  budgetsSheet_();
   console.log('Setup done.');
 }
 

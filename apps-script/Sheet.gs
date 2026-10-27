@@ -183,7 +183,7 @@ function logTransactions_(txs, raw, ctx, hint) {
   });
   const sh = sheet_('transactions');
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, SHEET_HEADERS.length).setValues(rows);
-  return 'Dicatat:\n' + clean.map(describe_).join('\n') + newAccountsNote_(created);
+  return 'Dicatat:\n' + clean.map(describe_).join('\n') + newAccountsNote_(created) + budgetWarnings_(clean);
 }
 
 // "Yang tadi" always means the last row of the transactions tab.
@@ -223,7 +223,7 @@ function correctLast_(corr, ctx) {
     Utilities.parseDate(t.date, TZ, 'yyyy-MM-dd'), t.amount, t.type, t.category, t.account, t.merchant, t.note,
   ]]);
   sh.getRange(last, 11).setValue(t.to_account);
-  return 'Dikoreksi:\n' + describe_(t) + newAccountsNote_(created);
+  return 'Dikoreksi:\n' + describe_(t) + newAccountsNote_(created) + budgetWarnings_([t]);
 }
 
 function readTransactions_() {
@@ -236,6 +236,60 @@ function readTransactions_() {
       account: String(r[5]), to_account: String(r[10]),
     };
   });
+}
+
+function rowToTx_(r) {
+  return {
+    id: String(r[0]), date: fmtDate_(r[1]), amount: Number(r[2]), type: r[3], category: String(r[4]),
+    account: String(r[5]), merchant: String(r[6]), note: String(r[7]), to_account: String(r[10]),
+  };
+}
+
+// Deletes everything the latest message logged: trailing rows that share the same created_at.
+// Balances and summaries are computed from the rows, so they follow automatically.
+function deleteLast_() {
+  const sh = sheet_('transactions');
+  const last = sh.getLastRow();
+  if (last < 2) return 'Belum ada transaksi untuk dihapus.';
+
+  const rows = sh.getRange(2, 1, last - 1, SHEET_HEADERS.length).getValues();
+  const stamp = rows[rows.length - 1][9];
+  let first = rows.length - 1;
+  if (stamp instanceof Date) {
+    while (first > 0 && rows[first - 1][9] instanceof Date && rows[first - 1][9].getTime() === stamp.getTime()) first--;
+  }
+  const removed = rows.slice(first).map(rowToTx_);
+  sh.deleteRows(first + 2, rows.length - first);
+  return 'Dihapus:\n' + removed.map(describe_).join('\n');
+}
+
+// Ids are shown by /terakhir.
+function deleteById_(id) {
+  const sh = sheet_('transactions');
+  const last = sh.getLastRow();
+  if (last < 2) return 'Belum ada transaksi.';
+  const ids = sh.getRange(2, 1, last - 1, 1).getValues();
+  for (let i = ids.length - 1; i >= 0; i--) {
+    if (String(ids[i][0]) === id) {
+      const tx = rowToTx_(sh.getRange(i + 2, 1, 1, SHEET_HEADERS.length).getValues()[0]);
+      sh.deleteRow(i + 2);
+      return 'Dihapus:\n' + describe_(tx);
+    }
+  }
+  return 'ID ' + id + ' tidak ditemukan. Lihat /terakhir.';
+}
+
+function recentReply_(n) {
+  const count = Math.min(Math.max(Number(n) || 5, 1), 20);
+  const sh = sheet_('transactions');
+  const last = sh.getLastRow();
+  if (last < 2) return 'Belum ada transaksi.';
+  const start = Math.max(2, last - count + 1);
+  const rows = sh.getRange(start, 1, last - start + 1, SHEET_HEADERS.length).getValues();
+  return (last - start + 1) + ' transaksi terakhir:\n' + rows.reverse().map(function (r) {
+    const t = rowToTx_(r);
+    return describe_(t) + ' | #' + t.id;
+  }).join('\n');
 }
 
 // Balance = opening balance + income - expense - saving, with transfers moving money between accounts.
@@ -291,6 +345,7 @@ function periodRange_(period) {
 function answerQuery_(q, ctx) {
   if (!q) return 'Pertanyaan tidak jelas. Contoh: "pengeluaran minggu ini?".';
   if (q.metric === 'account_balance') return balanceReply_(ctx, q.account);
+  if (q.metric === 'recent') return recentReply_(q.limit);
 
   const range = periodRange_(q.period);
   if (!range) return 'Periode custom belum didukung. Coba: hari ini, minggu ini, atau bulan ini.';

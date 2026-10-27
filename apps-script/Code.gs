@@ -58,6 +58,8 @@ function handleMessage_(msg) {
       const parsed = parseMessage_(msg.text, null, ctx);
       if (parsed.intent === 'log') {
         reply = logTransactions_(parsed.transactions || [], msg.text, ctx, parsed.reply_hint);
+      } else if (parsed.intent === 'delete') {
+        reply = deleteLast_();
       } else if (parsed.intent === 'correct') {
         reply = correctLast_(parsed.correction, ctx);
       } else if (parsed.intent === 'query') {

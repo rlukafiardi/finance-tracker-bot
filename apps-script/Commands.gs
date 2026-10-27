@@ -5,6 +5,7 @@ const HELP_TEXT = [
   'Pakai akun: "tap lrt 17k pake gopay"',
   'Transfer antar akun: "top up gopay pake bni 200k"',
   'Koreksi yang terakhir: "ubah yang tadi jadi 40rb", "salah, pakai bca"',
+  'Hapus yang terakhir: "hapus yang tadi". Riwayat: "5 transaksi terakhir"',
   'Tanya: "pengeluaran minggu ini?", "savings rate bulan ini?", "saldo gopay?"',
   '',
   'Perintah:',
@@ -12,6 +13,10 @@ const HELP_TEXT = [
   '/akun <nama> [saldo awal] : tambah akun atau atur saldo awal, mis. /akun BNI 1,5jt',
   '/kategori : daftar kategori',
   '/kategori <expense|income|saving> <nama> : tambah kategori, mis. /kategori expense Hobi',
+  '/budget : status budget bulan ini',
+  '/budget <kategori> <jumlah> : atur budget bulanan, mis. /budget makan 1,5jt (jumlah 0 menghapus)',
+  '/terakhir [n] : n transaksi terakhir dengan id (default 5)',
+  '/hapus [id] : hapus yang terakhir, atau satu transaksi berdasarkan id',
 ].join('\n');
 
 const TYPE_ALIASES = {
@@ -45,9 +50,40 @@ function handleCommand_(text, ctx) {
       return accountCommand_(args, ctx);
     case '/kategori':
       return categoryCommand_(args, ctx);
+    case '/budget':
+      return budgetCommand_(args, ctx);
+    case '/terakhir':
+      return recentReply_(args[0]);
+    case '/hapus':
+      return args.length ? deleteById_(args[0].replace(/^#/, '')) : deleteLast_();
     default:
       return 'Perintah tidak dikenal. Ketik /help.';
   }
+}
+
+// /budget -> status; /budget makan 1,5jt -> set the monthly limit; /budget makan 0 -> remove it
+function budgetCommand_(args, ctx) {
+  if (!args.length) return budgetOverview_();
+
+  let limit = null;
+  let nameParts = args;
+  if (args.length >= 2) {
+    const value = parseAmount_(args[args.length - 1]);
+    if (value !== null) {
+      limit = value;
+      nameParts = args.slice(0, -1);
+    }
+  }
+  if (limit === null) return 'Format: /budget <kategori> <jumlah per bulan>, mis. /budget makan 1,5jt';
+
+  const name = nameParts.join(' ').trim();
+  const category = ctx.cats.expense.find(function (c) { return c.toLowerCase() === name.toLowerCase(); });
+  if (!category) return 'Kategori "' + name + '" tidak ada di expense. Lihat /kategori.';
+
+  setBudget_(category, limit);
+  return limit === 0
+    ? 'Budget ' + category + ' dihapus.'
+    : 'Budget ' + category + ' diatur: ' + rupiah_(limit) + ' per bulan.';
 }
 
 function categoryCommand_(args, ctx) {
