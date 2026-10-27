@@ -75,7 +75,7 @@ function parseMessage_(text, todayLabel, cats) {
     res = UrlFetchApp.fetch(url, options);
   }
   if (res.getResponseCode() !== 200) {
-    throw new Error('Gemini ' + res.getResponseCode() + ': ' + res.getContentText().slice(0, 300));
+    throw new Error('Gemini ' + res.getResponseCode() + ': ' + res.getContentText().slice(0, 900));
   }
   const data = JSON.parse(res.getContentText());
   const part = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
