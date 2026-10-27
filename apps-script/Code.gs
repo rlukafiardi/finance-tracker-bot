@@ -20,15 +20,28 @@ function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
     // Apps Script cannot read headers, so the secret travels in the webhook URL.
-    if (!e || !e.postData || !e.parameter || e.parameter.secret !== prop_('WEBHOOK_SECRET')) return ok_();
+    if (!e || !e.postData || !e.parameter || e.parameter.secret !== prop_('WEBHOOK_SECRET')) {
+      console.log('Ignored: missing or wrong secret in webhook URL');
+      return ok_();
+    }
 
     const update = JSON.parse(e.postData.contents);
     const msg = update.message;
-    if (!msg || !msg.text) return ok_();
-    if (String(msg.chat.id) !== prop_('ALLOWED_CHAT_ID')) return ok_();
+    if (!msg || !msg.text) {
+      console.log('Ignored: update ' + update.update_id + ' has no text message');
+      return ok_();
+    }
+    if (String(msg.chat.id) !== prop_('ALLOWED_CHAT_ID').trim()) {
+      console.log('Ignored: chat id does not match ALLOWED_CHAT_ID');
+      return ok_();
+    }
 
     lock.waitLock(20000);
-    if (isDuplicate_(update.update_id)) return ok_();
+    if (isDuplicate_(update.update_id)) {
+      console.log('Ignored: update ' + update.update_id + ' already handled');
+      return ok_();
+    }
+    console.log('Handling update ' + update.update_id);
     handleMessage_(msg);
   } catch (err) {
     console.error(err && err.stack ? err.stack : err);
