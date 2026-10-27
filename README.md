@@ -37,7 +37,7 @@ Google Sheet with two tabs.
    |---|---|
    | `TELEGRAM_BOT_TOKEN` | from BotFather |
    | `GEMINI_API_KEY` | from aistudio.google.com |
-   | `GEMINI_MODEL` | optional, defaults to `gemini-3.8-flash`; older models (e.g. `gemini-2.5-flash`) return 404 for new accounts, so check AI Studio for current free models |
+   | `GEMINI_MODEL` | optional, defaults to `gemini-3.5-flash-lite` (free: 15 RPM, 500 RPD on my project). Full Flash models only get 20 RPD, and `gemini-2.5-flash` returns 404 for new accounts. Check https://ai.dev/rate-limit for current limits |
    | `SHEET_ID` | the id in the Sheet URL |
    | `ALLOWED_CHAT_ID` | your `chat.id` |
    | `WEBHOOK_SECRET` | a random 32-character string of letters and digits |
