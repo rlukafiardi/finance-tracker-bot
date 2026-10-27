@@ -39,13 +39,20 @@ function setup() {
   console.log('Setup done.');
 }
 
-// Points the Telegram bot at the deployed web app. Needs WEBAPP_URL (the /exec URL) and WEBHOOK_SECRET.
+// Telegram should call the relay (RELAY_URL, see relay/worker.js); without it, the web app directly.
+function webhookTarget_() {
+  const relay = optionalProp_('RELAY_URL');
+  return relay || prop_('WEBAPP_URL') + '?secret=' + encodeURIComponent(prop_('WEBHOOK_SECRET'));
+}
+
+// Points the Telegram bot at the relay or web app and drops any queued updates.
 function setWebhook() {
-  const url = prop_('WEBAPP_URL') + '?secret=' + encodeURIComponent(prop_('WEBHOOK_SECRET'));
+  const payload = { url: webhookTarget_(), allowed_updates: ['message'], drop_pending_updates: true };
+  if (optionalProp_('RELAY_URL')) payload.secret_token = prop_('WEBHOOK_SECRET'); // checked by the relay
   const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/setWebhook', {
     method: 'post',
     contentType: 'application/json',
-    payload: JSON.stringify({ url: url, allowed_updates: ['message'], drop_pending_updates: true }),
+    payload: JSON.stringify(payload),
     muteHttpExceptions: true,
   });
   console.log(res.getContentText());
@@ -59,12 +66,13 @@ function checkConfig() {
   const webapp = props.getProperty('WEBAPP_URL') || '';
   const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/getWebhookInfo');
   const info = JSON.parse(res.getContentText()).result || {};
-  const expected = webapp + '?secret=' + encodeURIComponent(secret);
   console.log([
     'ALLOWED_CHAT_ID is digits only (no spaces or quotes): ' + /^\d+$/.test(chatId),
     'WEBHOOK_SECRET is letters/digits only: ' + /^[A-Za-z0-9]+$/.test(secret),
     'WEBAPP_URL ends with /exec: ' + /\/exec$/.test(webapp),
-    'Telegram webhook = WEBAPP_URL + current secret: ' + (info.url === expected),
+    'Using relay (RELAY_URL set): ' + Boolean(props.getProperty('RELAY_URL')),
+    'Telegram webhook points at the expected target: ' + (info.url === webhookTarget_()),
+    'Last Telegram error: ' + (info.last_error_message || 'none'),
     'LAST_UPDATE_ID: ' + (props.getProperty('LAST_UPDATE_ID') || 'none'),
     'Pending updates at Telegram: ' + info.pending_update_count,
   ].join('\n'));
