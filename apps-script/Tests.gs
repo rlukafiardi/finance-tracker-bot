@@ -24,6 +24,8 @@ const EXAMPLES = [
   { message: 'tarik tunai 500rb dari bca', expect: { intent: 'log', transactions: [{ amount: 500000, type: 'transfer', account: 'BCA', to_account: 'Cash' }] } },
   { message: 'saldo gopay berapa?', expect: { intent: 'query', transactions: [], query: { metric: 'account_balance', account: 'GoPay' } } },
   { message: 'salah, pakai bca', expect: { intent: 'correct', transactions: [], correction: { account: 'BCA' } } },
+  { message: 'hapus yang tadi', expect: { intent: 'delete', transactions: [] } },
+  { message: '5 transaksi terakhir', expect: { intent: 'query', transactions: [], query: { metric: 'recent', limit: 5 } } },
 ];
 
 // Fixed accounts keep the tests independent of what is in the real accounts tab.

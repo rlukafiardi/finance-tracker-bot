@@ -31,7 +31,11 @@ and the dashboard answers "how much did I spend / save this month".
 - 2026-10-28: Account balances: new `transfer` type (account -> to_account, category "Transfer", excluded from
   spending/income/savings-rate) and an `accounts` tab (opening balance). Saving deducts from its source account.
   Unknown accounts are auto-created with opening balance 0. `to_account` is the last column so old sheets only need that header.
-- 2026-10-28: Slash commands (/help, /saldo, /akun, /kategori) are handled in code, not by Gemini, so they cost no quota.
+- 2026-10-28: Slash commands (/help, /saldo, /akun, /kategori, /budget, /terakhir, /hapus) are handled in code,
+  not by Gemini, so they cost no quota.
+- 2026-10-28: Delete ("hapus yang tadi", /hapus) removes all rows of the latest message (same created_at), so a
+  multi-item message undoes as one unit; /hapus <id> removes one row. Budgets are monthly per expense category
+  (`budgets` tab); replies warn at >= 80% on every expense in that category, not only when crossing.
 
 ## Status
 - Works: repo (private, rlukafiardi/finance-tracker-bot), full Apps Script code written, NOT yet run or deployed.
@@ -39,8 +43,7 @@ and the dashboard answers "how much did I spend / save this month".
 - Known risk: Apps Script answers POSTs with a 302 redirect, which Telegram may log as a webhook error and retry.
   Dedupe makes retries harmless, but check `webhookInfo()` after `setWebhook()`. Fallback: a free Cloudflare Worker
   relay that forwards to Apps Script and returns 200 to Telegram.
-- Feature backlog (after the bot works with real messages), in priority order: undo/delete ("hapus yang tadi") and
-  recent-N list; category budgets with 80%/100% warnings (`/budget`); scheduled daily/weekly summary via time trigger;
+- Feature backlog, in priority order: scheduled daily/weekly summary via time trigger;
   receipt photos and voice notes via Gemini multimodal; recurring entries; savings goals; spending alerts;
   monthly Sheet backup. WhatsApp Cloud API is parked as a possible second channel.
 - Next: paste code into the Sheet's Apps Script, set properties, `setup()`, `runExamples()`, deploy, `setWebhook()`,
