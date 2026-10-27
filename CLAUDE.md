@@ -39,5 +39,9 @@ and the dashboard answers "how much did I spend / save this month".
 - Known risk: Apps Script answers POSTs with a 302 redirect, which Telegram may log as a webhook error and retry.
   Dedupe makes retries harmless, but check `webhookInfo()` after `setWebhook()`. Fallback: a free Cloudflare Worker
   relay that forwards to Apps Script and returns 200 to Telegram.
+- Feature backlog (after the bot works with real messages), in priority order: undo/delete ("hapus yang tadi") and
+  recent-N list; category budgets with 80%/100% warnings (`/budget`); scheduled daily/weekly summary via time trigger;
+  receipt photos and voice notes via Gemini multimodal; recurring entries; savings goals; spending alerts;
+  monthly Sheet backup. WhatsApp Cloud API is parked as a possible second channel.
 - Next: paste code into the Sheet's Apps Script, set properties, `setup()`, `runExamples()`, deploy, `setWebhook()`,
   test with real messages. Then the Looker Studio dashboard.
