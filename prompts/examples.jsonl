@@ -1,0 +1,15 @@
+{"today":"2026-10-27","message":"makan siang 35rb gofood","expect":{"intent":"log","transactions":[{"date":"2026-10-27","amount":35000,"type":"expense","category":"Makan","merchant":"Gofood"}]}}
+{"today":"2026-10-27","message":"gaji 15jt masuk bca","expect":{"intent":"log","transactions":[{"date":"2026-10-27","amount":15000000,"type":"income","category":"Gaji","account":"BCA"}]}}
+{"today":"2026-10-27","message":"nabung 2jt","expect":{"intent":"log","transactions":[{"date":"2026-10-27","amount":2000000,"type":"saving","category":"Tabungan"}]}}
+{"today":"2026-10-27","message":"kemarin grab 28k","expect":{"intent":"log","transactions":[{"date":"2026-10-26","amount":28000,"type":"expense","category":"Transport","merchant":"Grab"}]}}
+{"today":"2026-10-27","message":"bayar listrik 1,5jt","expect":{"intent":"log","transactions":[{"date":"2026-10-27","amount":1500000,"type":"expense","category":"Tagihan"}]}}
+{"today":"2026-10-27","message":"kopi 25rb, parkir 5rb","expect":{"intent":"log","transactions":[{"amount":25000,"type":"expense","category":"Makan"},{"amount":5000,"type":"expense","category":"Transport"}]}}
+{"today":"2026-10-27","message":"beli reksadana 500rb","expect":{"intent":"log","transactions":[{"amount":500000,"type":"saving","category":"Investasi"}]}}
+{"today":"2026-10-27","message":"dapat bonus 3.000.000","expect":{"intent":"log","transactions":[{"amount":3000000,"type":"income","category":"Bonus"}]}}
+{"today":"2026-10-27","message":"nonton bioskop 60rb pakai gopay","expect":{"intent":"log","transactions":[{"amount":60000,"type":"expense","category":"Hiburan","account":"Gopay"}]}}
+{"today":"2026-10-27","message":"ubah yang tadi jadi 40rb","expect":{"intent":"correct","transactions":[],"correction":{"amount":40000}}}
+{"today":"2026-10-27","message":"salah, harusnya transport","expect":{"intent":"correct","transactions":[],"correction":{"category":"Transport"}}}
+{"today":"2026-10-27","message":"pengeluaran minggu ini berapa?","expect":{"intent":"query","transactions":[],"query":{"metric":"spending","period":"week"}}}
+{"today":"2026-10-27","message":"savings rate bulan ini?","expect":{"intent":"query","transactions":[],"query":{"metric":"savings_rate","period":"month"}}}
+{"today":"2026-10-27","message":"makan di warteg","expect":{"intent":"other","transactions":[]}}
+{"today":"2026-10-27","message":"halo","expect":{"intent":"other","transactions":[]}}
