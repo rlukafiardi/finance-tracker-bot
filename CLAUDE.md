@@ -36,6 +36,8 @@ and the dashboard answers "how much did I spend / save this month".
 - 2026-10-28: Telegram -> Cloudflare Worker relay (`relay/worker.js`, free, no card) -> Apps Script. Confirmed live:
   Apps Script's 302 made Telegram resend the first update forever (dedupe ignored it) and newer messages queued
   behind it. The relay answers 200 and checks Telegram's secret_token header (so WEBHOOK_SECRET must be [A-Za-z0-9_-]).
+- 2026-10-28: Chose polling instead (`Poll.gs`, time trigger every minute, getUpdates): no Cloudflare account,
+  all inside Google, replies within ~1 min. Relay kept in the repo as the option for instant replies.
 - 2026-10-28: Delete ("hapus yang tadi", /hapus) removes all rows of the latest message (same created_at), so a
   multi-item message undoes as one unit; /hapus <id> removes one row. Budgets are monthly per expense category
   (`budgets` tab); replies warn at >= 80% on every expense in that category, not only when crossing.

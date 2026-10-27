@@ -66,16 +66,25 @@ function checkConfig() {
   const webapp = props.getProperty('WEBAPP_URL') || '';
   const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/getWebhookInfo');
   const info = JSON.parse(res.getContentText()).result || {};
-  console.log([
+  const polling = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'pollUpdates'; });
+  const lines = [
     'ALLOWED_CHAT_ID is digits only (no spaces or quotes): ' + /^\d+$/.test(chatId),
-    'WEBHOOK_SECRET is letters/digits only: ' + /^[A-Za-z0-9]+$/.test(secret),
-    'WEBAPP_URL ends with /exec: ' + /\/exec$/.test(webapp),
-    'Using relay (RELAY_URL set): ' + Boolean(props.getProperty('RELAY_URL')),
-    'Telegram webhook points at the expected target: ' + (info.url === webhookTarget_()),
-    'Last Telegram error: ' + (info.last_error_message || 'none'),
+    'Mode: ' + (polling ? 'polling (every minute)' : 'webhook'),
+  ];
+  if (polling) {
+    lines.push('Webhook removed (required for polling): ' + !info.url);
+  } else {
+    lines.push(
+      'WEBHOOK_SECRET is letters/digits only: ' + /^[A-Za-z0-9]+$/.test(secret),
+      'WEBAPP_URL ends with /exec: ' + /\/exec$/.test(webapp),
+      'Using relay (RELAY_URL set): ' + Boolean(props.getProperty('RELAY_URL')),
+      'Telegram webhook points at the expected target: ' + (info.url === webhookTarget_()),
+      'Last Telegram error: ' + (info.last_error_message || 'none'));
+  }
+  lines.push(
     'LAST_UPDATE_ID: ' + (props.getProperty('LAST_UPDATE_ID') || 'none'),
-    'Pending updates at Telegram: ' + info.pending_update_count,
-  ].join('\n'));
+    'Pending updates at Telegram: ' + info.pending_update_count);
+  console.log(lines.join('\n'));
 }
 
 // Shows delivery status. The webhook URL contains the secret, so it is removed from the log.

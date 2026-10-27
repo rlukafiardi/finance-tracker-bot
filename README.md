@@ -47,15 +47,19 @@ moving money between accounts. Unknown accounts are created automatically with o
 
 4. Run `setup()` once and authorize. It creates the two tabs, headers and default categories.
 5. Run `runExamples()` and read the log: it tests the prompt against 15 sample messages without touching the Sheet.
-6. Deploy > New deployment > Web app: execute as Me, access Anyone. Copy the `/exec` URL into a new
+6. Connect Telegram, pick one:
+   - Polling (simplest, all Google): run `startPolling()`, then `checkConfig()`. Replies take up to a minute;
+     code changes only need a save. Skip steps 7-9.
+   - Webhook (replies in seconds): steps 7-9.
+7. Deploy > New deployment > Web app: execute as Me, access Anyone. Copy the `/exec` URL into a new
    script property `WEBAPP_URL`. After later code changes use Deploy > Manage deployments > Edit > New version
    (the URL stays the same).
-7. Relay (needed: Apps Script answers webhooks with a 302, so Telegram keeps resending the first update and
+8. Relay (needed: Apps Script answers webhooks with a 302, so Telegram keeps resending the first update and
    newer messages get stuck). On a free Cloudflare account (no card): Workers & Pages > Create > Worker, paste
    `relay/worker.js`, Deploy. Under Settings > Variables and Secrets add two Secrets: `TELEGRAM_SECRET`
    (= `WEBHOOK_SECRET`) and `APPS_SCRIPT_URL` (= the `/exec` URL + `?secret=` + `WEBHOOK_SECRET`).
    Put the Worker URL (`https://<name>.<you>.workers.dev`) in the script property `RELAY_URL`.
-8. Run `setWebhook()`, then `checkConfig()`: every line should be true and the last error "none". Then message the bot.
+9. Run `setWebhook()`, then `checkConfig()`: every line should be true and the last error "none". Then message the bot.
 
 Never put tokens in the code or in git; they live only in Script Properties.
 
