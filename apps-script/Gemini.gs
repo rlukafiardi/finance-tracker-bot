@@ -1,7 +1,7 @@
 // Gemini call with structured JSON output. Model name lives in the GEMINI_MODEL script property,
 // so it can be swapped if free-tier quotas or model names change.
 
-const DEFAULT_MODEL = 'gemini-3.8-flash';
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
 
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
