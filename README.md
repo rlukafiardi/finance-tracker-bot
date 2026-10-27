@@ -1,33 +1,58 @@
 # Finance Tracker Bot
 
-Personal finance tracker: send a chat message to a Telegram bot ("makan siang 35rb gofood", "gaji 15jt masuk",
-"nabung 2jt"), Gemini parses it into a structured row, n8n writes it to Google Sheets, and a Looker Studio
-dashboard shows spending, income and savings. Target cost: $0.
+Personal finance tracker: send a message to a Telegram bot ("makan siang 35rb gofood", "gaji 15jt masuk",
+"nabung 2jt"), Gemini parses it, and a Google Apps Script web app writes it to a Google Sheet.
+Looker Studio reads the Sheet for spending, income and savings. Runs entirely on free tiers, no card, no server.
 
 ## Flow
 
-1. Telegram message -> n8n webhook (self-hosted on Oracle Always Free VPS)
-2. Gemini (free tier) extracts JSON: date, amount, type (expense/income/saving), category, account, merchant, note
-3. n8n validates the JSON and appends a row to the `transactions` tab (categories come from the `categories` tab)
-4. Bot replies with a confirmation; corrections update the row by `id`
-5. Looker Studio reads the Sheet: weekly/monthly spending, by category, income vs expense, savings rate
+1. Telegram message -> webhook -> Apps Script web app (`doPost`)
+2. Checks: secret in the URL, chat id equals mine, update not seen before
+3. Gemini (free tier) returns JSON: intent (log / correct / query / other) and transactions
+4. Validate against the `categories` tab, then append to `transactions`, correct the last row, or answer a summary query
+5. Bot replies with what it did
 
-## Data sources
+## Data
 
-- Google Sheet (`GOOGLE_SHEET_ID`): `transactions` and `categories` tabs. Columns:
-  `id, date, amount, type, category, account, merchant, note, raw_message, created_at`.
+Google Sheet with two tabs.
+
+`transactions`: `id, date, amount, type, category, account, merchant, note, raw_message, created_at`
+(`type` is expense, income or saving).
+`categories`: `type, category`. Seeded by `setup()` with the defaults in `apps-script/Setup.gs`.
 
 ## Layout
 
-- `workflows/`: exported n8n workflow JSON (no credentials)
-- `prompts/`: Gemini prompt templates, versioned as files
-- `evals/`: sample messages and expected parses, to test prompt changes
-- `deploy/`: Docker Compose and VPS setup notes
-- `finance_tracker_bot/`: Python helpers (eval scripts), if needed
+- `apps-script/`: the code to paste into the Apps Script editor (one file per `.gs`)
+- `CLAUDE.md`: project notes
 
-## How to run
+## Setup (copy-paste, no tooling)
 
-1. Copy `.env.example` to `.env` and fill in the secrets (never commit it).
-2. On the VPS: `docker compose -f deploy/docker-compose.yml up -d` (to be added).
-3. Import the workflow from `workflows/` into n8n and attach credentials.
-4. Local Python helpers: `uv sync`.
+1. Telegram: create the bot with @BotFather and keep the token. Message the bot once, then open
+   `https://api.telegram.org/bot<TOKEN>/getUpdates` in your browser to read your numeric `chat.id`.
+2. Sheet: open it, Extensions > Apps Script. Create one file per `.gs` in `apps-script/` and paste the contents.
+   In Project Settings set the time zone to Asia/Jakarta (or paste `appsscript.json` via "Show appsscript.json").
+3. Project Settings > Script Properties, add:
+
+   | Property | Value |
+   |---|---|
+   | `TELEGRAM_BOT_TOKEN` | from BotFather |
+   | `GEMINI_API_KEY` | from aistudio.google.com |
+   | `GEMINI_MODEL` | optional, defaults to `gemini-2.5-flash`; check the current free model in AI Studio |
+   | `SHEET_ID` | the id in the Sheet URL |
+   | `ALLOWED_CHAT_ID` | your `chat.id` |
+   | `WEBHOOK_SECRET` | a random 32-character string of letters and digits |
+
+4. Run `setup()` once and authorize. It creates the two tabs, headers and default categories.
+5. Run `runExamples()` and read the log: it tests the prompt against 15 sample messages without touching the Sheet.
+6. Deploy > New deployment > Web app: execute as Me, access Anyone. Copy the `/exec` URL into a new
+   script property `WEBAPP_URL`. After later code changes use Deploy > Manage deployments > Edit > New version
+   (the URL stays the same).
+7. Run `setWebhook()`, then `webhookInfo()`. Check that `last_error_message` is empty, then message the bot.
+
+Never put tokens in the code or in git; they live only in Script Properties.
+
+## Bot commands (just type them)
+
+- Log: "makan siang 35rb gofood", "gaji 15jt", "nabung 2jt", "kemarin grab 28k", "kopi 25rb, parkir 5rb"
+- Fix the last entry: "ubah yang tadi jadi 40rb", "salah, harusnya transport"
+- Ask: "pengeluaran minggu ini?", "savings rate bulan ini?", "sisa kas bulan ini?"
