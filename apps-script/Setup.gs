@@ -51,6 +51,25 @@ function setWebhook() {
   console.log(res.getContentText());
 }
 
+// Diagnoses "the bot does not reply" without printing secrets: compares the properties with what Telegram has.
+function checkConfig() {
+  const props = PropertiesService.getScriptProperties();
+  const chatId = props.getProperty('ALLOWED_CHAT_ID') || '';
+  const secret = props.getProperty('WEBHOOK_SECRET') || '';
+  const webapp = props.getProperty('WEBAPP_URL') || '';
+  const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/getWebhookInfo');
+  const info = JSON.parse(res.getContentText()).result || {};
+  const expected = webapp + '?secret=' + encodeURIComponent(secret);
+  console.log([
+    'ALLOWED_CHAT_ID is digits only (no spaces or quotes): ' + /^\d+$/.test(chatId),
+    'WEBHOOK_SECRET is letters/digits only: ' + /^[A-Za-z0-9]+$/.test(secret),
+    'WEBAPP_URL ends with /exec: ' + /\/exec$/.test(webapp),
+    'Telegram webhook = WEBAPP_URL + current secret: ' + (info.url === expected),
+    'LAST_UPDATE_ID: ' + (props.getProperty('LAST_UPDATE_ID') || 'none'),
+    'Pending updates at Telegram: ' + info.pending_update_count,
+  ].join('\n'));
+}
+
 // Shows delivery status. The webhook URL contains the secret, so it is removed from the log.
 function webhookInfo() {
   const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/getWebhookInfo');
