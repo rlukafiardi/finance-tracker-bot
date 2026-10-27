@@ -63,6 +63,7 @@ function runExamples() {
       console.log('FAIL #' + (i + 1) + ' "' + ex.message + '": ' + problems.join('; '));
     } else {
       pass++;
+      console.log('PASS #' + (i + 1) + ' "' + ex.message + '"');
     }
     Utilities.sleep(4000);
   });
