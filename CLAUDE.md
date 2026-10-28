@@ -72,11 +72,12 @@ and the dashboard answers "how much did I spend / save this month".
   if the relay is ever unavailable), the direct-webhook path (broken by the 302), migration shims in setup(),
   the ownerId_ fallback (ALLOWED_USER_ID is now required), old PENDING-format compat, swallowed JSON errors,
   webhookInfo() (checkConfig covers it) and DEFAULT_ACCOUNT (never used).
-- 2026-10-28: Scheduled reports (Reports.gs, installSchedules()): daily 21:00, Sunday 20:00 with a ±20% spending
-  alert vs the average of up to 4 earlier weeks (weeks before tracking started are skipped, not counted as zero),
-  monthly backup on the 1st. Backup is a values-only new spreadsheet, because copying the file would also copy the
-  bound Apps Script project. Reports go to the first ALLOWED_CHAT_ID inside FINANCE_TOPIC_ID. Totals come from
-  sumRows_, shared with the chat questions.
+- 2026-10-28: Scheduled reports (Reports.gs, installSchedules()), both 09:00 WIB about the period that just ended
+  (my choice; no daily recap): Monday = last week, alert ±20% vs up to 4 earlier weeks; 1st = last month with
+  savings rate, budget results, alert vs up to 3 earlier months, plus the backup. Periods before tracking started
+  are skipped, not counted as zero. Backup is a values-only new spreadsheet, because copying the file would also
+  copy the bound Apps Script project. Reports go to the first ALLOWED_CHAT_ID inside FINANCE_TOPIC_ID. Totals
+  come from sumRows_, shared with the chat questions.
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in group "Radikal AI Assistant🗿" (chat -1004451166719),
