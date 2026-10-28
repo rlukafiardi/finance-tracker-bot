@@ -441,7 +441,9 @@ function periodRange_(period) {
 }
 
 // Totals for a set of rows, shared by questions and scheduled reports so both always agree.
-// Saving = saving-type rows plus net transfers into tabungan accounts; other transfers only move money around.
+// kept ("ditabung") = income - expense: what was left over, wherever it sits.
+// saving = money moved to savings: saving-type rows plus net transfers into tabungan accounts; other transfers
+// only move money around.
 function sumRows_(rows, ctx) {
   const kindOf = {};
   ctx.accounts.forEach(function (a) { kindOf[a.name.toLowerCase()] = a.kind; });
@@ -458,6 +460,7 @@ function sumRows_(rows, ctx) {
     sum[r.type] += r.amount;
     if (r.type === 'expense') sum.byCat[r.category] = (sum.byCat[r.category] || 0) + r.amount;
   });
+  sum.kept = sum.income - sum.expense;
   return sum;
 }
 
@@ -484,7 +487,8 @@ function answerQuery_(q, ctx) {
     case 'income':
       return 'Pemasukan ' + label + ': ' + rupiah_(sum.income);
     case 'saving':
-      return 'Ditabung ' + label + ': ' + rupiah_(sum.saving) + '\n(nabung + transfer bersih ke akun tabungan)';
+      return 'Ditabung ' + label + ': ' + rupiah_(sum.kept) + '\n(pemasukan − pengeluaran)' +
+        (sum.saving ? '\n└ dipindah ke tabungan: ' + rupiah_(sum.saving) : '');
     case 'balance':
       return 'Sisa kas ' + label + ': ' + rupiah_(sum.income - sum.expense - sum.saving) +
         '\n(pemasukan ' + rupiah_(sum.income) + ', pengeluaran ' + rupiah_(sum.expense) +

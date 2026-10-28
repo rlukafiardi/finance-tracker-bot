@@ -102,7 +102,8 @@ Definitions used everywhere (bot answers and formulas agree):
 
 - **Account balance** = opening balance + income − expense − saving − transfers out + transfers in.
 - **Tabungan** = balance of accounts of kind `tabungan`. Investasi is reported separately.
-- **Ditabung (saving metric)** = `saving` rows + net transfers into tabungan accounts.
+- **Ditabung** = income − expense: what was left over, wherever it sits (dashboard, recaps, "ditabung bulan ini?").
+- **Dipindah ke tabungan** = `saving` rows + net transfers into tabungan accounts, shown as a second line when non-zero.
 - **Savings rate** = (income − expense) / income. Transfers are never spending or income.
 - A plain `nabung 2jt` (no destination) is type `saving`: it leaves the tracked accounts. Name the account to keep it visible.
 

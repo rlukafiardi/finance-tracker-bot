@@ -83,6 +83,9 @@ and the dashboard answers "how much did I spend / save this month".
   Values computed by the bot's functions, not Sheet formulas, so the tabungan-transfer rule lives in one place;
   trade-off: rebuilt after every confirmed change and daily 06:00 instead of live. Colors: dataviz palette slots
   1-3 (validated), spending always orange.
+- 2026-10-28: "Ditabung" redefined as income − expense (sumRows_.kept), my choice: it showed 0 because my money sits
+  in bank-kind accounts and I don't log "nabung". The old measure (saving rows + net transfers into tabungan
+  accounts) stays as "dipindah ke tabungan", shown only when non-zero.
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in group "Radikal AI Assistant🗿" (chat -1004451166719),
