@@ -1,7 +1,8 @@
 // Slash commands. Handled in code, so they never call Gemini and cost no quota.
+// Commands that change data return { action, preview } and wait for ✅/❌ (see Confirm.gs).
 
 const HELP_TEXT = [
-  '🤖 BEEP BOOP. Finance Bot v1.0 online.',
+  '🤖 BEEP BOOP. Finance Bot v1.1 online.',
   'Ketik bebas, saya yang mencatat. 💸',
   '',
   '📝 CATAT',
@@ -31,6 +32,7 @@ const HELP_TEXT = [
   '/terakhir 10  riwayat + id',
   '/hapus a1b2c3d4  hapus berdasarkan id',
   '',
+  '🛡️ Semua yang mengubah data minta konfirmasi ✅/❌ dulu (atau ketik "ya"/"batal").',
   '🔋 Status: siap menghitung setiap rupiah.',
 ].join('\n');
 
@@ -49,6 +51,15 @@ function parseAmount_(s) {
     return Math.round(parseFloat(m[1].replace(',', '.')) * mult);
   }
   return parseInt(m[1].replace(/[.,]/g, ''), 10);
+}
+
+// Splits "<name words> <amount>" into { name, amount }; amount is null when the last word is not one.
+function splitNameAmount_(args) {
+  if (args.length >= 2) {
+    const value = parseAmount_(args[args.length - 1]);
+    if (value !== null) return { name: args.slice(0, -1).join(' ').trim(), amount: value };
+  }
+  return { name: args.join(' ').trim(), amount: null };
 }
 
 function handleCommand_(text, ctx) {
@@ -70,40 +81,38 @@ function handleCommand_(text, ctx) {
     case '/terakhir':
       return recentReply_(args[0]);
     case '/hapus':
-      return args.length ? deleteById_(args[0].replace(/^#/, '')) : deleteLast_();
+      return args.length ? prepareDeleteById_(args[0].replace(/^#/, '')) : prepareDeleteLast_();
     default:
-      return 'Perintah tidak dikenal. Ketik /help.';
+      return 'Perintah tidak dikenal 🤖 Ketik /help.';
   }
 }
 
 // /budget -> status; /budget makan 1,5jt -> set the monthly limit; /budget makan 0 -> remove it
 function budgetCommand_(args, ctx) {
-  if (!args.length) return budgetOverview_();
+  if (!args.length) return '📊 ' + budgetOverview_();
+  const parsed = splitNameAmount_(args);
+  if (parsed.amount === null) return 'Format: /budget <kategori> <jumlah per bulan>, mis. /budget makan 1,5jt';
 
-  let limit = null;
-  let nameParts = args;
-  if (args.length >= 2) {
-    const value = parseAmount_(args[args.length - 1]);
-    if (value !== null) {
-      limit = value;
-      nameParts = args.slice(0, -1);
-    }
-  }
-  if (limit === null) return 'Format: /budget <kategori> <jumlah per bulan>, mis. /budget makan 1,5jt';
+  const category = ctx.cats.expense.find(function (c) { return c.toLowerCase() === parsed.name.toLowerCase(); });
+  if (!category) return 'Kategori "' + parsed.name + '" tidak ada di expense. Lihat /kategori.';
+  return {
+    action: { kind: 'budget', category: category, limit: parsed.amount },
+    preview: parsed.amount === 0
+      ? '🎯 Hapus budget ' + category + '?'
+      : '🎯 Atur budget ' + category + ' jadi ' + rupiah_(parsed.amount) + ' per bulan?',
+  };
+}
 
-  const name = nameParts.join(' ').trim();
-  const category = ctx.cats.expense.find(function (c) { return c.toLowerCase() === name.toLowerCase(); });
-  if (!category) return 'Kategori "' + name + '" tidak ada di expense. Lihat /kategori.';
-
-  setBudget_(category, limit);
-  return limit === 0
-    ? 'Budget ' + category + ' dihapus.'
-    : 'Budget ' + category + ' diatur: ' + rupiah_(limit) + ' per bulan.';
+function commitBudget_(a) {
+  setBudget_(a.category, a.limit);
+  return a.limit === 0
+    ? '✅ Budget ' + a.category + ' dihapus.'
+    : '✅ Budget ' + a.category + ': ' + rupiah_(a.limit) + ' per bulan. Saya awasi ya 👀';
 }
 
 function categoryCommand_(args, ctx) {
   if (!args.length) {
-    return TYPES.map(function (t) { return t + ': ' + (ctx.cats[t].join(', ') || '-'); }).join('\n');
+    return '🏷️ Kategori:\n\n' + TYPES.map(function (t) { return t + ': ' + (ctx.cats[t].join(', ') || '-'); }).join('\n');
   }
   const key = args[0].toLowerCase();
   const type = Object.prototype.hasOwnProperty.call(TYPE_ALIASES, key) ? TYPE_ALIASES[key] : null;
@@ -114,36 +123,41 @@ function categoryCommand_(args, ctx) {
 
   const label = name.charAt(0).toUpperCase() + name.slice(1);
   const exists = ctx.cats[type].some(function (c) { return c.toLowerCase() === label.toLowerCase(); });
-  if (exists) return 'Kategori ' + label + ' sudah ada untuk ' + type + '.';
-
-  sheet_('categories').appendRow([type, label]);
-  return 'Kategori ditambah: ' + label + ' (' + type + ')';
+  if (exists) return 'Kategori ' + label + ' sudah ada untuk ' + type + ' 👍';
+  return {
+    action: { kind: 'category', type: type, label: label },
+    preview: '🏷️ Tambah kategori ' + label + ' (' + type + ')?',
+  };
 }
 
-// /akun BNI 1,5jt  -> add account (or set opening balance if it exists)
-// /akun Bank Jago  -> add account with opening balance 0
+function commitCategory_(a) {
+  const exists = getCategories_()[a.type].some(function (c) { return c.toLowerCase() === a.label.toLowerCase(); });
+  if (!exists) sheet_('categories').appendRow([a.type, a.label]);
+  return '✅ Kategori ' + a.label + ' (' + a.type + ') siap dipakai!';
+}
+
+// /akun BNI 1,5jt  -> add the account, or set its opening balance if it exists
+// /akun Bank Jago  -> add the account with opening balance 0
 function accountCommand_(args, ctx) {
   if (!args.length) return 'Format: /akun <nama> [saldo awal], mis. /akun BNI 1,5jt';
+  const parsed = splitNameAmount_(args);
+  if (parsed.name.length > 30) return 'Nama akun terlalu panjang (maks 30 karakter).';
+  if (/^[=+\-@]/.test(parsed.name)) return 'Nama akun tidak boleh diawali = + - atau @.';
 
-  let opening = null;
-  let nameParts = args;
-  if (args.length >= 2) {
-    const value = parseAmount_(args[args.length - 1]);
-    if (value !== null) {
-      opening = value;
-      nameParts = args.slice(0, -1);
-    }
-  }
-  const name = nameParts.join(' ').trim();
-  if (name.length > 30) return 'Nama akun terlalu panjang (maks 30 karakter).';
-  if (/^[=+\-@]/.test(name)) return 'Nama akun tidak boleh diawali = + - atau @.';
+  const known = matchAccount_(parsed.name, ctx.accounts);
+  if (known && parsed.amount === null) return 'Akun ' + known + ' sudah ada. Atur saldo awal: /akun ' + known + ' <saldo>';
+  const opening = parsed.amount || 0;
+  return {
+    action: { kind: 'account', name: known || parsed.name, opening: opening },
+    preview: known
+      ? '🏦 Atur saldo awal ' + known + ' jadi ' + rupiah_(opening) + '?'
+      : '🆕 Tambah akun ' + parsed.name + ' dengan saldo awal ' + rupiah_(opening) + '?',
+  };
+}
 
-  const known = matchAccount_(name, ctx.accounts);
-  if (known) {
-    if (opening === null) return 'Akun ' + known + ' sudah ada. Atur saldo awal: /akun ' + known + ' <saldo>';
-    setOpening_(known, opening);
-    return 'Saldo awal ' + known + ' diatur ke ' + rupiah_(opening);
-  }
-  addAccount_(name, opening || 0);
-  return 'Akun ditambah: ' + name + ' (saldo awal ' + rupiah_(opening || 0) + ')';
+function commitAccount_(a) {
+  const known = matchAccount_(a.name, getAccounts_());
+  if (known) setOpening_(known, a.opening);
+  else addAccount_(a.name, a.opening);
+  return '✅ Akun ' + (known || a.name) + ' siap, saldo awal ' + rupiah_(a.opening) + ' 🏦';
 }

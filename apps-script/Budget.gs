@@ -67,11 +67,11 @@ function budgetWarnings_(txs) {
     const used = spent[key] || 0;
     const pct = Math.round(used / b.limit * 100);
     if (pct >= 80) {
-      lines.push((pct >= 100 ? 'Melebihi budget: ' : 'Peringatan: ') + b.category + ' ' + pct +
+      lines.push((pct >= 100 ? '🚨 Melebihi budget: ' : '⚠️ Hampir habis: ') + b.category + ' ' + pct +
         '% dari budget bulan ini (' + rupiah_(used) + ' / ' + rupiah_(b.limit) + ')');
     }
   });
-  return lines.length ? '\n' + lines.join('\n') : '';
+  return lines.length ? '\n\n' + lines.join('\n') : '';
 }
 
 function budgetOverview_() {

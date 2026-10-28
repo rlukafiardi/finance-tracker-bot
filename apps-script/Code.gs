@@ -1,4 +1,5 @@
-// Telegram webhook entry point. Flow: auth check -> dedupe -> slash command or Gemini parse -> route by intent -> reply.
+// Entry points: Telegram webhook (doPost) or polling (Poll.gs) -> handleUpdate_.
+// Messages: yes/no to a pending action, slash command, or Gemini parse -> reply or confirmation preview.
 
 const TZ = 'Asia/Jakarta';
 
@@ -24,25 +25,13 @@ function doPost(e) {
       console.log('Ignored: missing or wrong secret in webhook URL');
       return ok_();
     }
-
     const update = JSON.parse(e.postData.contents);
-    const msg = update.message;
-    if (!msg || !msg.text) {
-      console.log('Ignored: update ' + update.update_id + ' has no text message');
-      return ok_();
-    }
-    if (String(msg.chat.id) !== prop_('ALLOWED_CHAT_ID').trim()) {
-      console.log('Ignored: chat id does not match ALLOWED_CHAT_ID');
-      return ok_();
-    }
-
     lock.waitLock(20000);
     if (isDuplicate_(update.update_id)) {
       console.log('Ignored: update ' + update.update_id + ' already handled');
       return ok_();
     }
-    console.log('Handling update ' + update.update_id);
-    handleMessage_(msg);
+    handleUpdate_(update);
   } catch (err) {
     console.error(err && err.stack ? err.stack : err);
   } finally {
@@ -60,30 +49,70 @@ function isDuplicate_(updateId) {
   return false;
 }
 
+// Shared by the webhook and polling. Only my own chat is answered.
+function handleUpdate_(update) {
+  const allowed = prop_('ALLOWED_CHAT_ID').trim();
+
+  const cb = update.callback_query;
+  if (cb) {
+    if (!cb.message || String(cb.message.chat.id) !== allowed) {
+      console.log('Ignored: button tap from another chat');
+      return;
+    }
+    console.log('Handling button ' + update.update_id);
+    try {
+      handleCallback_(cb);
+    } catch (err) {
+      console.error(err && err.stack ? err.stack : err);
+    }
+    return;
+  }
+
+  const msg = update.message;
+  if (!msg || !msg.text) {
+    console.log('Ignored: update ' + update.update_id + ' has no text message');
+    return;
+  }
+  if (String(msg.chat.id) !== allowed) {
+    console.log('Ignored: chat id does not match ALLOWED_CHAT_ID');
+    return;
+  }
+  console.log('Handling update ' + update.update_id);
+  handleMessage_(msg);
+}
+
+// Handlers return a string (sent as is), { reply }, or { action, preview } (sent with ✅/❌ buttons).
 function handleMessage_(msg) {
   const chatId = msg.chat.id;
   try {
+    if (handleConfirmText_(chatId, msg.text)) return;
+
     const ctx = { cats: getCategories_(), accounts: getAccounts_() };
-    let reply;
+    let r;
     if (msg.text.charAt(0) === '/') {
-      reply = handleCommand_(msg.text, ctx);
+      r = handleCommand_(msg.text, ctx);
     } else {
       const parsed = parseMessage_(msg.text, null, ctx);
+      const quip = parsed.quip ? '\n\n🤖 ' + parsed.quip : '';
       if (parsed.intent === 'log') {
-        reply = logTransactions_(parsed.transactions || [], msg.text, ctx, parsed.reply_hint);
+        r = prepareLog_(parsed.transactions || [], msg.text, ctx, parsed.reply_hint);
       } else if (parsed.intent === 'delete') {
-        reply = deleteLast_();
+        r = prepareDeleteLast_();
       } else if (parsed.intent === 'correct') {
-        reply = correctLast_(parsed.correction, ctx);
+        r = prepareCorrect_(parsed.correction, ctx);
       } else if (parsed.intent === 'query') {
-        reply = answerQuery_(parsed.query, ctx);
+        r = '📊 ' + answerQuery_(parsed.query, ctx) + quip;
       } else {
-        reply = parsed.reply_hint || 'Maaf, tidak paham. Ketik /help untuk contoh.';
+        r = '🤖 ' + (parsed.reply_hint || line_('confused'));
       }
+      if (r && r.preview) r.preview += quip;
     }
-    sendMessage_(chatId, reply);
+
+    if (typeof r === 'string') r = { reply: r };
+    if (r.action) askConfirm_(chatId, r.action, r.preview);
+    else sendMessage_(chatId, r.reply);
   } catch (err) {
     console.error(err && err.stack ? err.stack : err);
-    sendMessage_(chatId, 'Gagal memproses pesan, coba lagi nanti.');
+    sendMessage_(chatId, '⚠️ Bip... ada error di sirkuit saya. Coba lagi sebentar ya.');
   }
 }

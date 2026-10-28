@@ -47,7 +47,7 @@ function webhookTarget_() {
 
 // Points the Telegram bot at the relay or web app and drops any queued updates.
 function setWebhook() {
-  const payload = { url: webhookTarget_(), allowed_updates: ['message'], drop_pending_updates: true };
+  const payload = { url: webhookTarget_(), allowed_updates: ['message', 'callback_query'], drop_pending_updates: true };
   if (optionalProp_('RELAY_URL')) payload.secret_token = prop_('WEBHOOK_SECRET'); // checked by the relay
   const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/setWebhook', {
     method: 'post',

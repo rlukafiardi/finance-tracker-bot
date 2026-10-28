@@ -1,5 +1,7 @@
-// Google Sheet access: categories, accounts, append, correct last row, balances, summary queries.
+// Google Sheet access: categories, accounts, transactions, balances, summary queries.
 // Tabs: `transactions` (SHEET_HEADERS), `categories` (type, category), `accounts` (account, opening_balance).
+// Writes are split in two: prepare*_ validates and returns { action, preview } for the confirmation step
+// (or { reply } when there is nothing to confirm); commit*_ performs the write after the user confirms.
 // `to_account` is the last column so sheets created before transfers existed only need that one header added.
 
 const SHEET_HEADERS = ['id', 'date', 'amount', 'type', 'category', 'account', 'merchant', 'note', 'raw_message', 'created_at', 'to_account'];
@@ -85,7 +87,7 @@ function setOpening_(name, opening) {
 }
 
 // Returns { tx, newAccounts } with a cleaned transaction, or { error } with a reason.
-// newAccounts lists account names that are not in ctx.accounts yet (created by the caller after validation).
+// newAccounts lists account names that are not in ctx.accounts yet.
 function normalizeTx_(tx, ctx) {
   const amount = Number(tx.amount);
   if (!Number.isInteger(amount) || amount <= 0) return { error: 'jumlah tidak valid' };
@@ -141,100 +143,34 @@ function normalizeTx_(tx, ctx) {
 
 function describe_(tx) {
   if (tx.type === 'transfer') {
-    return 'Transfer ' + rupiah_(tx.amount) + ' ' + tx.account + ' -> ' + tx.to_account + ' | ' + tx.date;
+    return '🔁 Transfer ' + rupiah_(tx.amount) + '\n     ' + tx.account + ' ➜ ' + tx.to_account + ' · ' + tx.date;
   }
-  return tx.category + ' ' + rupiah_(tx.amount) + (tx.merchant ? ' (' + tx.merchant + ')' : '') +
-    (tx.account ? ' [' + tx.account + ']' : '') + ' | ' + tx.type + ' | ' + tx.date;
+  const details = [tx.merchant, tx.account, tx.date].filter(Boolean).join(' · ');
+  return emojiFor_(tx) + ' ' + tx.category + ' ' + rupiah_(tx.amount) + '\n     ' + details;
 }
 
-function newAccountsNote_(created) {
-  if (!created.length) return '';
-  return '\nAkun baru: ' + created.map(function (n) {
-    return n + ' (saldo awal Rp0, atur dengan /akun ' + n + ' <saldo>)';
-  }).join(', ');
+function newAccountsNote_(names) {
+  if (!names.length) return '';
+  return '\n\n🆕 Akun baru: ' + names.join(', ') + ' (saldo awal Rp0, atur nanti dengan /akun <nama> <saldo>)';
 }
 
-function logTransactions_(txs, raw, ctx, hint) {
-  if (!txs.length) return hint || 'Tidak ada transaksi yang terbaca. Coba tulis jumlahnya, mis. "makan 35rb".';
-
-  const clean = [];
-  const created = [];
-  for (let i = 0; i < txs.length; i++) {
-    const n = normalizeTx_(txs[i], ctx);
-    if (n.error) return 'Tidak dicatat (' + n.error + '). Coba tulis ulang.';
-    clean.push(n.tx);
-    n.newAccounts.forEach(function (name) {
-      if (!matchAccount_(name, ctx.accounts)) {
-        ctx.accounts.push({ name: name, opening: 0 });
-        created.push(name);
-      }
-    });
-  }
-
-  created.forEach(function (name) { addAccount_(name, 0); });
-
-  const now = new Date();
-  const rows = clean.map(function (t) {
-    return [
-      Utilities.getUuid().slice(0, 8),
-      Utilities.parseDate(t.date, TZ, 'yyyy-MM-dd'),
-      t.amount, t.type, t.category, t.account, t.merchant, t.note, raw, now, t.to_account,
-    ];
-  });
-  const sh = sheet_('transactions');
-  sh.getRange(sh.getLastRow() + 1, 1, rows.length, SHEET_HEADERS.length).setValues(rows);
-  return 'Dicatat:\n' + clean.map(describe_).join('\n') + newAccountsNote_(created) + budgetWarnings_(clean);
-}
-
-// "Yang tadi" always means the last row of the transactions tab.
-function correctLast_(corr, ctx) {
-  const sh = sheet_('transactions');
-  const last = sh.getLastRow();
-  if (last < 2) return 'Belum ada transaksi untuk dikoreksi.';
-
-  const row = sh.getRange(last, 1, 1, SHEET_HEADERS.length).getValues()[0];
-  const next = {
-    date: fmtDate_(row[1]), amount: row[2], type: row[3], category: row[4],
-    account: row[5], merchant: row[6], note: row[7], to_account: row[10],
-  };
-  let changed = false;
-  ['amount', 'category', 'type', 'date', 'account'].forEach(function (k) {
-    if (corr && corr[k] !== null && corr[k] !== undefined && corr[k] !== '') {
-      next[k] = corr[k];
-      changed = true;
-    }
-  });
-  if (!changed) return 'Tidak ada yang diubah. Contoh: "ubah yang tadi jadi 40rb".';
-
-  const n = normalizeTx_(next, ctx);
-  if (n.error) return 'Koreksi gagal (' + n.error + ').';
-  const t = n.tx;
-
-  const created = [];
-  n.newAccounts.forEach(function (name) {
+// Remembers accounts seen for the first time, so a later row in the same message matches them.
+function collectNewAccounts_(names, ctx, created) {
+  names.forEach(function (name) {
     if (!matchAccount_(name, ctx.accounts)) {
       ctx.accounts.push({ name: name, opening: 0 });
       created.push(name);
     }
   });
-  created.forEach(function (name) { addAccount_(name, 0); });
-
-  sh.getRange(last, 2, 1, 7).setValues([[
-    Utilities.parseDate(t.date, TZ, 'yyyy-MM-dd'), t.amount, t.type, t.category, t.account, t.merchant, t.note,
-  ]]);
-  sh.getRange(last, 11).setValue(t.to_account);
-  return 'Dikoreksi:\n' + describe_(t) + newAccountsNote_(created) + budgetWarnings_([t]);
 }
 
-function readTransactions_() {
-  const sh = sheet_('transactions');
-  const last = sh.getLastRow();
-  if (last < 2) return [];
-  return sh.getRange(2, 1, last - 1, SHEET_HEADERS.length).getValues().map(function (r) {
-    return {
-      date: fmtDate_(r[1]), amount: Number(r[2]), type: r[3], category: String(r[4]),
-      account: String(r[5]), to_account: String(r[10]),
-    };
+function createAccounts_(names) {
+  const existing = getAccounts_();
+  names.forEach(function (name) {
+    if (!matchAccount_(name, existing)) {
+      addAccount_(name, 0);
+      existing.push({ name: name, opening: 0 });
+    }
   });
 }
 
@@ -245,12 +181,101 @@ function rowToTx_(r) {
   };
 }
 
-// Deletes everything the latest message logged: trailing rows that share the same created_at.
-// Balances and summaries are computed from the rows, so they follow automatically.
-function deleteLast_() {
+// Sheet row number of a transaction id (searching from the bottom), or -1.
+function findRowById_(sh, id) {
+  const last = sh.getLastRow();
+  if (last < 2) return -1;
+  const ids = sh.getRange(2, 1, last - 1, 1).getValues();
+  for (let i = ids.length - 1; i >= 0; i--) {
+    if (String(ids[i][0]) === id) return i + 2;
+  }
+  return -1;
+}
+
+// ---- Log -------------------------------------------------------------------------------------------------
+
+function prepareLog_(txs, raw, ctx, hint) {
+  if (!txs.length) return { reply: '🤖 ' + (hint || line_('confused')) };
+
+  const clean = [];
+  const created = [];
+  for (let i = 0; i < txs.length; i++) {
+    const n = normalizeTx_(txs[i], ctx);
+    if (n.error) return { reply: '🤖 Bip... tidak bisa dicatat (' + n.error + '). Coba tulis ulang ya.' };
+    clean.push(n.tx);
+    collectNewAccounts_(n.newAccounts, ctx, created);
+  }
+  return {
+    action: { kind: 'log', txs: clean, raw: raw, newAccounts: created },
+    preview: '📝 Catat ' + (clean.length > 1 ? clean.length + ' transaksi' : 'ini') + '?\n\n' +
+      clean.map(describe_).join('\n') + newAccountsNote_(created),
+  };
+}
+
+function commitLog_(a) {
+  createAccounts_(a.newAccounts);
+  const now = new Date();
+  const rows = a.txs.map(function (t) {
+    return [
+      Utilities.getUuid().slice(0, 8),
+      Utilities.parseDate(t.date, TZ, 'yyyy-MM-dd'),
+      t.amount, t.type, t.category, t.account, t.merchant, t.note, a.raw, now, t.to_account,
+    ];
+  });
+  const sh = sheet_('transactions');
+  sh.getRange(sh.getLastRow() + 1, 1, rows.length, SHEET_HEADERS.length).setValues(rows);
+  return '✅ ' + line_('saved') + '\n\n' + a.txs.map(describe_).join('\n') + budgetWarnings_(a.txs);
+}
+
+// ---- Correct (always the last row: "yang tadi") ----------------------------------------------------------
+
+function prepareCorrect_(corr, ctx) {
   const sh = sheet_('transactions');
   const last = sh.getLastRow();
-  if (last < 2) return 'Belum ada transaksi untuk dihapus.';
+  if (last < 2) return { reply: 'Belum ada transaksi untuk dikoreksi 🤖' };
+
+  const before = rowToTx_(sh.getRange(last, 1, 1, SHEET_HEADERS.length).getValues()[0]);
+  const next = Object.assign({}, before);
+  let changed = false;
+  ['amount', 'category', 'type', 'date', 'account'].forEach(function (k) {
+    if (corr && corr[k] !== null && corr[k] !== undefined && corr[k] !== '') {
+      next[k] = corr[k];
+      changed = true;
+    }
+  });
+  if (!changed) return { reply: 'Tidak ada yang diubah 🤔 Contoh: "ubah yang tadi jadi 40rb".' };
+
+  const n = normalizeTx_(next, ctx);
+  if (n.error) return { reply: '🤖 Koreksi gagal (' + n.error + ').' };
+  const created = [];
+  collectNewAccounts_(n.newAccounts, ctx, created);
+  return {
+    action: { kind: 'correct', id: before.id, tx: n.tx, newAccounts: created },
+    preview: '✏️ Ubah transaksi terakhir?\n\nSebelum:\n' + describe_(before) +
+      '\n\nSesudah:\n' + describe_(n.tx) + newAccountsNote_(created),
+  };
+}
+
+function commitCorrect_(a) {
+  const sh = sheet_('transactions');
+  const r = findRowById_(sh, a.id);
+  if (r < 0) return '⚠️ Transaksinya sudah tidak ada, tidak ada yang diubah.';
+  createAccounts_(a.newAccounts);
+  const t = a.tx;
+  sh.getRange(r, 2, 1, 7).setValues([[
+    Utilities.parseDate(t.date, TZ, 'yyyy-MM-dd'), t.amount, t.type, t.category, t.account, t.merchant, t.note,
+  ]]);
+  sh.getRange(r, 11).setValue(t.to_account);
+  return '✅ Diubah!\n\n' + describe_(t) + budgetWarnings_([t]);
+}
+
+// ---- Delete ----------------------------------------------------------------------------------------------
+
+// "Hapus yang tadi" removes everything the latest message logged: trailing rows that share the same created_at.
+function prepareDeleteLast_() {
+  const sh = sheet_('transactions');
+  const last = sh.getLastRow();
+  if (last < 2) return { reply: 'Belum ada transaksi untuk dihapus 🤖' };
 
   const rows = sh.getRange(2, 1, last - 1, SHEET_HEADERS.length).getValues();
   const stamp = rows[rows.length - 1][9];
@@ -258,37 +283,58 @@ function deleteLast_() {
   if (stamp instanceof Date) {
     while (first > 0 && rows[first - 1][9] instanceof Date && rows[first - 1][9].getTime() === stamp.getTime()) first--;
   }
-  const removed = rows.slice(first).map(rowToTx_);
-  sh.deleteRows(first + 2, rows.length - first);
-  return 'Dihapus:\n' + removed.map(describe_).join('\n');
+  return deleteAction_(rows.slice(first).map(rowToTx_));
 }
 
 // Ids are shown by /terakhir.
-function deleteById_(id) {
+function prepareDeleteById_(id) {
+  const sh = sheet_('transactions');
+  const r = findRowById_(sh, id);
+  if (r < 0) return { reply: 'ID ' + id + ' tidak ditemukan 🔍 Lihat /terakhir.' };
+  return deleteAction_([rowToTx_(sh.getRange(r, 1, 1, SHEET_HEADERS.length).getValues()[0])]);
+}
+
+function deleteAction_(txs) {
+  return {
+    action: { kind: 'delete', ids: txs.map(function (t) { return t.id; }), txs: txs },
+    preview: '🗑️ Hapus ' + (txs.length > 1 ? txs.length + ' transaksi' : 'ini') + '?\n\n' + txs.map(describe_).join('\n'),
+  };
+}
+
+// Balances and summaries are computed from the rows, so they follow automatically.
+function commitDelete_(a) {
+  const sh = sheet_('transactions');
+  let removed = 0;
+  a.ids.forEach(function (id) {
+    const r = findRowById_(sh, id);
+    if (r > 0) {
+      sh.deleteRow(r);
+      removed++;
+    }
+  });
+  if (!removed) return '⚠️ Transaksinya sudah tidak ada.';
+  return '🗑️ ' + line_('deleted') + '\n\n' + a.txs.map(describe_).join('\n');
+}
+
+// ---- Read-only -------------------------------------------------------------------------------------------
+
+function readTransactions_() {
   const sh = sheet_('transactions');
   const last = sh.getLastRow();
-  if (last < 2) return 'Belum ada transaksi.';
-  const ids = sh.getRange(2, 1, last - 1, 1).getValues();
-  for (let i = ids.length - 1; i >= 0; i--) {
-    if (String(ids[i][0]) === id) {
-      const tx = rowToTx_(sh.getRange(i + 2, 1, 1, SHEET_HEADERS.length).getValues()[0]);
-      sh.deleteRow(i + 2);
-      return 'Dihapus:\n' + describe_(tx);
-    }
-  }
-  return 'ID ' + id + ' tidak ditemukan. Lihat /terakhir.';
+  if (last < 2) return [];
+  return sh.getRange(2, 1, last - 1, SHEET_HEADERS.length).getValues().map(rowToTx_);
 }
 
 function recentReply_(n) {
   const count = Math.min(Math.max(Number(n) || 5, 1), 20);
   const sh = sheet_('transactions');
   const last = sh.getLastRow();
-  if (last < 2) return 'Belum ada transaksi.';
+  if (last < 2) return 'Belum ada transaksi 🤖';
   const start = Math.max(2, last - count + 1);
   const rows = sh.getRange(start, 1, last - start + 1, SHEET_HEADERS.length).getValues();
-  return (last - start + 1) + ' transaksi terakhir:\n' + rows.reverse().map(function (r) {
+  return '🧾 ' + (last - start + 1) + ' transaksi terakhir:\n\n' + rows.reverse().map(function (r) {
     const t = rowToTx_(r);
-    return describe_(t) + ' | #' + t.id;
+    return describe_(t) + ' · #' + t.id;
   }).join('\n');
 }
 
@@ -296,7 +342,7 @@ function recentReply_(n) {
 // Only accounts listed in the accounts tab are tracked; rows without an account do not affect any balance.
 function balanceReply_(ctx, onlyAccount) {
   if (!ctx.accounts.length) {
-    return 'Belum ada akun. Tambah dengan /akun BNI 1,5jt, atau sebut akun saat mencatat.';
+    return 'Belum ada akun 🏦 Tambah dengan /akun BNI 1,5jt, atau sebut akun saat mencatat.';
   }
   const bal = {};
   ctx.accounts.forEach(function (a) { bal[a.name] = a.opening; });
@@ -318,12 +364,12 @@ function balanceReply_(ctx, onlyAccount) {
   if (onlyAccount) {
     const key = matchAccount_(onlyAccount, ctx.accounts);
     if (!key) return 'Akun "' + onlyAccount + '" belum ada. Tambah dengan /akun ' + onlyAccount + ' <saldo awal>.';
-    return 'Saldo ' + key + ': ' + rupiah_(bal[key]);
+    return '🏦 Saldo ' + key + ': ' + rupiah_(bal[key]);
   }
   const names = Object.keys(bal).sort();
   const total = names.reduce(function (s, n) { return s + bal[n]; }, 0);
-  return 'Saldo akun:\n' + names.map(function (n) { return n + ': ' + rupiah_(bal[n]); }).join('\n') +
-    '\nTotal: ' + rupiah_(total) + '\n(saldo awal + transaksi yang tercatat)';
+  return '🏦 Saldo akun:\n\n' + names.map(function (n) { return n + ': ' + rupiah_(bal[n]); }).join('\n') +
+    '\n\nTotal: ' + rupiah_(total) + '\n(saldo awal + transaksi yang tercatat)';
 }
 
 // Weeks run Monday to Sunday.
