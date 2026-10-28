@@ -10,12 +10,8 @@ const NO_WORDS = ['batal', 'tidak', 'gak', 'ga', 'nggak', 'enggak', 'no', 'cance
 function getPending_() {
   const raw = optionalProp_('PENDING');
   if (!raw) return null;
-  try {
-    const p = JSON.parse(raw);
-    return Date.now() - p.createdAt > PENDING_TTL_MS ? null : p;
-  } catch (err) {
-    return null;
-  }
+  const p = JSON.parse(raw);
+  return Date.now() - p.createdAt > PENDING_TTL_MS ? null : p;
 }
 
 function clearPending_() {
@@ -26,10 +22,8 @@ function clearPending_() {
 function closeOldPending_() {
   const raw = optionalProp_('PENDING');
   if (!raw) return;
-  try {
-    const p = JSON.parse(raw);
-    if (p.messageId && p.chatId) editMessage_(p.chatId, p.messageId, p.preview + '\n\n⏭️ Dilewati (ada pesan baru).');
-  } catch (err) { /* nothing to close */ }
+  const p = JSON.parse(raw);
+  if (p.messageId) editMessage_(p.chatId, p.messageId, p.preview + '\n\n⏭️ Dilewati (ada pesan baru).');
   clearPending_();
 }
 
@@ -89,11 +83,10 @@ function resolvePending_(to, p, confirmed, viaButton) {
     result = '❌ ' + line_('cancelled');
   }
 
-  const previewChat = p.chatId || to.chatId;
   if (viaButton && p.messageId) {
-    editMessage_(previewChat, p.messageId, result);
+    editMessage_(p.chatId, p.messageId, result);
   } else {
-    if (p.messageId) editMessage_(previewChat, p.messageId, p.preview + '\n\n' + (confirmed ? '✅ Dikonfirmasi' : '❌ Dibatalkan'));
+    if (p.messageId) editMessage_(p.chatId, p.messageId, p.preview + '\n\n' + (confirmed ? '✅ Dikonfirmasi' : '❌ Dibatalkan'));
     sendMessage_(to, result);
   }
 }

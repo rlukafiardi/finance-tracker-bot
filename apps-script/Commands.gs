@@ -182,7 +182,7 @@ function accountCommand_(args, ctx) {
 function commitAccount_(a) {
   const known = matchAccount_(a.name, getAccounts_());
   if (known) {
-    if (a.opening !== null && a.opening !== undefined) setOpening_(known, a.opening);
+    if (a.opening !== null) setOpening_(known, a.opening);
     if (a.jenis) setAccountKind_(known, a.jenis);
     return '✅ Akun ' + known + ' diperbarui 🏦';
   }

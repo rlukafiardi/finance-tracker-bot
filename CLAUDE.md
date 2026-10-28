@@ -67,7 +67,11 @@ and the dashboard answers "how much did I spend / save this month".
   multi-item message undoes as one unit; /hapus <id> removes one row. Budgets are monthly per expense category
   (`budgets` tab); replies warn at >= 80% on every expense in that category, not only when crossing.
 
-- 2026-10-28: Back to webhook mode: Cloudflare relay set up and live, replies instant. Polling stays as fallback.
+- 2026-10-28: Back to webhook mode: Cloudflare relay set up and live, replies instant.
+- 2026-10-28: Anti-slop audit applied: removed polling mode (Poll.gs, BURST_SECONDS; restore from git history
+  if the relay is ever unavailable), the direct-webhook path (broken by the 302), migration shims in setup(),
+  the ownerId_ fallback (ALLOWED_USER_ID is now required), old PENDING-format compat, swallowed JSON errors,
+  webhookInfo() (checkConfig covers it) and DEFAULT_ACCOUNT (never used).
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in group "Radikal AI Assistant🗿" (chat -1004451166719),

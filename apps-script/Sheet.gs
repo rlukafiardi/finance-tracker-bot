@@ -2,7 +2,6 @@
 // Tabs: `transactions` (SHEET_HEADERS), `categories` (type, category), `accounts` (account, opening_balance).
 // Writes are split in two: prepare*_ validates and returns { action, preview } for the confirmation step
 // (or { reply } when there is nothing to confirm); commit*_ performs the write after the user confirms.
-// `to_account` is the last column so sheets created before transfers existed only need that one header added.
 
 const SHEET_HEADERS = ['id', 'date', 'amount', 'type', 'category', 'account', 'merchant', 'note', 'raw_message', 'created_at', 'to_account'];
 const TYPES = ['expense', 'income', 'saving']; // types that have categories
@@ -44,7 +43,6 @@ function getCategories_() {
   return cats;
 }
 
-// The accounts tab is created on first use, so older sheets keep working without re-running setup().
 function accountsSheet_() {
   const ss = spreadsheet_();
   let sh = ss.getSheetByName('accounts');
@@ -129,7 +127,7 @@ function normalizeTx_(tx, ctx) {
     return raw;
   };
 
-  let account = pickAccount(tx.account || optionalProp_('DEFAULT_ACCOUNT'));
+  let account = pickAccount(tx.account);
   let toAccount = '';
   let category;
 
