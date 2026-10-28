@@ -78,6 +78,11 @@ and the dashboard answers "how much did I spend / save this month".
   are skipped, not counted as zero. Backup is a values-only new spreadsheet, because copying the file would also
   copy the bound Apps Script project. Reports go to the first ALLOWED_CHAT_ID inside FINANCE_TOPIC_ID. Totals
   come from sumRows_, shared with the chat questions.
+- 2026-10-28: Dashboard in the Sheet (my choice, instead of Looker Studio): generated `dashboard` tab (Dashboard.gs)
+  with stat tiles, 12-month trend, categories vs budget, 12 weeks, balances; native charts next to each table.
+  Values computed by the bot's functions, not Sheet formulas, so the tabungan-transfer rule lives in one place;
+  trade-off: rebuilt after every confirmed change and daily 06:00 instead of live. Colors: dataviz palette slots
+  1-3 (validated), spending always orange.
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in group "Radikal AI Assistant🗿" (chat -1004451166719),
@@ -89,5 +94,4 @@ and the dashboard answers "how much did I spend / save this month".
 - `runExamples()` not re-run after the account-kinds prompt change (26 cases): skipped by my choice, live use works.
 - Feature backlog, in priority order: receipt photos and voice notes via Gemini multimodal; recurring entries;
   savings goals. WhatsApp Cloud API is parked as a possible second channel.
-- Next: Looker Studio dashboard on the Sheet; IDX technical analysis as its own project in another topic,
-  with topic routing added to `relay/worker.js`.
+- Next: IDX technical analysis as its own project in another topic, with topic routing added to `relay/worker.js`.

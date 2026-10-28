@@ -89,6 +89,7 @@ function resolvePending_(to, p, confirmed, viaButton) {
     if (p.messageId) editMessage_(p.chatId, p.messageId, p.preview + '\n\n' + (confirmed ? '✅ Dikonfirmasi' : '❌ Dibatalkan'));
     sendMessage_(to, result);
   }
+  if (confirmed) refreshDashboardAfterChange_();
 }
 
 function runAction_(action) {
