@@ -90,6 +90,8 @@ and the dashboard answers "how much did I spend / save this month".
   (opening balances are not income, so sisa can be negative early in a month). "Tabungan" (🪙, no pig icon) is
   the current balance of tabungan-kind accounts, shown on the dashboard and in the recaps. The old "sisa kas"
   (income − expense − saving) was merged into Sisa so only one number has that name.
+- 2026-10-28: Accounts can be set up by chat: Gemini intent "account" with account_setup {name, opening, kind};
+  /akun and chat share prepareAccount_ (same validation and ✅/❌ preview).
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in group "Radikal AI Assistant🗿" (chat -1004451166719),

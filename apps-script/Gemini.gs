@@ -6,7 +6,7 @@ const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
   properties: {
-    intent: { type: 'STRING', enum: ['log', 'correct', 'delete', 'query', 'other'] },
+    intent: { type: 'STRING', enum: ['log', 'correct', 'delete', 'query', 'account', 'other'] },
     transactions: {
       type: 'ARRAY',
       items: {
@@ -45,6 +45,15 @@ const RESPONSE_SCHEMA = {
         limit: { type: 'INTEGER', nullable: true },
         category: { type: 'STRING', nullable: true },
         account: { type: 'STRING', nullable: true },
+      },
+    },
+    account_setup: {
+      type: 'OBJECT',
+      nullable: true,
+      properties: {
+        name: { type: 'STRING' },
+        opening: { type: 'INTEGER', nullable: true },
+        kind: { type: 'STRING', enum: ['bank', 'ewallet', 'cash', 'tabungan', 'investasi', 'lainnya'], nullable: true },
       },
     },
     reply_hint: { type: 'STRING', nullable: true },

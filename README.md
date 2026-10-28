@@ -47,6 +47,7 @@ Telegram with 200 itself and forwards the update to Apps Script.
 | `top up gopay pake bni 200k` | Transfer BNI → GoPay (not spending) |
 | `nabung 2jt dari bca ke bibit` | Transfer into a savings or investment account |
 | `kopi 25rb, parkir 5rb` | Two transactions from one message |
+| `tambah akun Bibit 5jt investasi` / `saldo awal BCA 10jt` / `Bibit itu investasi` | Add an account, or set its opening balance or kind (same as `/akun`) |
 | `ubah yang tadi jadi 40rb` / `salah, pakai bca` | Correct the last transaction |
 | `hapus yang tadi` | Delete everything the last message logged |
 | `pengeluaran minggu ini?` / `savings rate bulan ini?` | Summaries (today, week, month, or `sampai sekarang`) |

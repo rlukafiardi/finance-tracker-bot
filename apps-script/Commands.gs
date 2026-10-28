@@ -12,6 +12,7 @@ const HELP_TEXT = [
   '› tap lrt 17k pake gopay',
   '› top up gopay pake bni 200k',
   '› nabung 2jt dari bca ke bibit',
+  '› tambah akun Bibit 5jt investasi',
   '',
   '🛠 PERBAIKI',
   '› ubah yang tadi jadi 40rb',
@@ -152,28 +153,34 @@ function accountCommand_(args, ctx) {
   const jenis = rest.length >= 2 ? parseKind_(rest[rest.length - 1]) : null;
   if (jenis) rest.pop();
   const parsed = splitNameAmount_(rest);
-  if (parsed.name.length > 30) return 'Nama akun terlalu panjang (maks 30 karakter).';
-  if (/^[=+\-@]/.test(parsed.name)) return 'Nama akun tidak boleh diawali = + - atau @.';
+  return prepareAccount_(parsed.name, parsed.amount, jenis, ctx);
+}
 
-  const known = matchAccount_(parsed.name, ctx.accounts);
+// Shared by /akun and chat ("tambah akun Bibit 5jt investasi"). opening/jenis null = keep, or 0 / guessed for a
+// new account.
+function prepareAccount_(name, opening, jenis, ctx) {
+  if (!name) return 'Nama akunnya apa? Contoh: tambah akun Bibit 5jt investasi';
+  if (name.length > 30) return 'Nama akun terlalu panjang (maks 30 karakter).';
+  if (/^[=+\-@]/.test(name)) return 'Nama akun tidak boleh diawali = + - atau @.';
+
+  const known = matchAccount_(name, ctx.accounts);
   if (known) {
-    if (parsed.amount === null && !jenis) {
-      return 'Akun ' + known + ' sudah ada. Atur saldo awal: /akun ' + known + ' <saldo>, atau jenis: /akun ' + known + ' <jenis>';
+    if (opening === null && !jenis) {
+      return 'Akun ' + known + ' sudah ada. Sebutkan saldo awal atau jenisnya, mis. "saldo awal ' + known + ' 5jt".';
     }
     const changes = [];
-    if (parsed.amount !== null) changes.push('saldo awal jadi ' + rupiah_(parsed.amount));
+    if (opening !== null) changes.push('saldo awal jadi ' + rupiah_(opening));
     if (jenis) changes.push('jenis jadi ' + KIND_LABEL[jenis]);
     return {
-      action: { kind: 'account', name: known, opening: parsed.amount, jenis: jenis },
+      action: { kind: 'account', name: known, opening: opening, jenis: jenis },
       preview: '🏦 Ubah akun ' + known + ': ' + changes.join(', ') + '?',
     };
   }
-  const kind = jenis || guessKind_(parsed.name);
-  const opening = parsed.amount || 0;
+  const kind = jenis || guessKind_(name);
   return {
-    action: { kind: 'account', name: parsed.name, opening: opening, jenis: kind },
-    preview: '🆕 Tambah akun ' + parsed.name + ' (' + KIND_LABEL[kind] + ') dengan saldo awal ' + rupiah_(opening) + '?' +
-      (jenis ? '' : '\nJenis salah? Tambahkan di akhir, mis. /akun ' + parsed.name + ' ' + opening + ' tabungan'),
+    action: { kind: 'account', name: name, opening: opening || 0, jenis: kind },
+    preview: '🆕 Tambah akun ' + name + ' (' + KIND_LABEL[kind] + ') dengan saldo awal ' + rupiah_(opening || 0) + '?' +
+      (jenis ? '' : '\nJenis salah? Batalkan lalu sebutkan jenisnya, mis. "tambah akun ' + name + ' tabungan".'),
   };
 }
 
