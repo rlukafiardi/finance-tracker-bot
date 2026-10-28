@@ -12,6 +12,7 @@ function installSchedules() {
   ScriptApp.newTrigger('weeklySummary').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(9).create();
   ScriptApp.newTrigger('monthlySummary').timeBased().onMonthDay(1).atHour(9).create();
   ScriptApp.newTrigger('refreshDashboard').timeBased().everyDays(1).atHour(6).create();
+  if (optionalProp_('EMAIL_SINCE')) ScriptApp.newTrigger('dailyEmailImport').timeBased().everyDays(1).atHour(EMAIL_HOUR).create();
   console.log('Scheduled (WIB): weekly recap Monday 09-10h, monthly recap and backup on the 1st 09-10h, ' +
     'dashboard refresh daily 06-07h.');
 }

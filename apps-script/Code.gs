@@ -138,6 +138,8 @@ function handleMessage_(msg, to) {
         const c = parsed.category_setup || {};
         r = c.name ? prepareCategory_(TYPES.indexOf(c.type) >= 0 ? c.type : 'expense', String(c.name).trim(), ctx)
           : categoryList_(ctx);
+      } else if (parsed.intent === 'email') {
+        r = prepareEmailImport_(ctx);
       } else if (parsed.intent === 'help') {
         r = HELP_TEXT;
       } else if (parsed.intent === 'delete') {
@@ -145,7 +147,7 @@ function handleMessage_(msg, to) {
       } else if (parsed.intent === 'correct') {
         const pending = getPending_();
         const byId = parsed.correction && parsed.correction.id;
-        r = pending && pending.action.kind === 'log' && !byId
+        r = pending && (pending.action.kind === 'log' || pending.action.kind === 'emails') && !byId
           ? prepareEditPending_(pending, parsed.correction, ctx)
           : prepareCorrect_(parsed.correction, ctx);
       } else if (parsed.intent === 'query') {

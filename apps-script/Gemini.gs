@@ -6,7 +6,7 @@ const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
   properties: {
-    intent: { type: 'STRING', enum: ['log', 'correct', 'delete', 'query', 'account', 'budget', 'category', 'help', 'other'] },
+    intent: { type: 'STRING', enum: ['log', 'correct', 'delete', 'query', 'account', 'budget', 'category', 'help', 'email', 'other'] },
     delete_id: { type: 'STRING', nullable: true },
     transactions: {
       type: 'ARRAY',
@@ -30,6 +30,7 @@ const RESPONSE_SCHEMA = {
       nullable: true,
       properties: {
         id: { type: 'STRING', nullable: true },
+        item: { type: 'INTEGER', nullable: true },
         amount: { type: 'INTEGER', nullable: true },
         category: { type: 'STRING', nullable: true },
         type: { type: 'STRING', nullable: true },
@@ -82,18 +83,18 @@ const RESPONSE_SCHEMA = {
   required: ['intent', 'transactions'],
 };
 
-// todayLabel is optional (tests pin it); defaults to now in Asia/Jakarta.
-function parseMessage_(text, todayLabel, ctx) {
-  const today = todayLabel || Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd (EEEE)');
+// One Gemini call with structured JSON output; retries rate limits and temporary overloads (429, 5xx) with a short
+// backoff.
+function callGemini_(systemText, userText, schema) {
   const model = PropertiesService.getScriptProperties().getProperty('GEMINI_MODEL') || DEFAULT_MODEL;
   const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent';
   const body = {
-    systemInstruction: { parts: [{ text: buildPrompt_(today, ctx) }] },
-    contents: [{ role: 'user', parts: [{ text: text }] }],
+    systemInstruction: { parts: [{ text: systemText }] },
+    contents: [{ role: 'user', parts: [{ text: userText }] }],
     generationConfig: {
       temperature: 0,
       responseMimeType: 'application/json',
-      responseSchema: RESPONSE_SCHEMA,
+      responseSchema: schema,
     },
   };
   const options = {
@@ -103,7 +104,6 @@ function parseMessage_(text, todayLabel, ctx) {
     payload: JSON.stringify(body),
     muteHttpExceptions: true,
   };
-  // Retry rate limits and temporary overloads (429, 5xx) with a short backoff.
   let res = UrlFetchApp.fetch(url, options);
   for (let attempt = 1; attempt < 3 && (res.getResponseCode() === 429 || res.getResponseCode() >= 500); attempt++) {
     Utilities.sleep(attempt * 2000);
@@ -116,4 +116,36 @@ function parseMessage_(text, todayLabel, ctx) {
   const part = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
   if (!part || !part[0] || !part[0].text) throw new Error('Gemini returned no content');
   return JSON.parse(part[0].text);
+}
+
+// todayLabel is optional (tests pin it); defaults to now in Asia/Jakarta.
+function parseMessage_(text, todayLabel, ctx) {
+  const today = todayLabel || Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd (EEEE)');
+  return callGemini_(buildPrompt_(today, ctx), text, RESPONSE_SCHEMA);
+}
+
+// Best expense category for each merchant name from a QRIS email. Returns { lowercase merchant: category }.
+function categorizeMerchants_(merchants, categories) {
+  const schema = {
+    type: 'OBJECT',
+    properties: {
+      items: {
+        type: 'ARRAY',
+        items: {
+          type: 'OBJECT',
+          properties: { merchant: { type: 'STRING' }, category: { type: 'STRING', enum: categories } },
+          required: ['merchant', 'category'],
+        },
+      },
+    },
+    required: ['items'],
+  };
+  const system = 'Each line is a shop or service name from an Indonesian QRIS payment (it can be a brand, a legal ' +
+    'entity or abbreviated). Return one item per line, merchant copied exactly, with the best category from the ' +
+    'allowed list. Use "Lainnya" when you cannot tell.';
+  const out = {};
+  callGemini_(system, merchants.join('\n'), schema).items.forEach(function (it) {
+    out[it.merchant.toLowerCase()] = it.category;
+  });
+  return out;
 }

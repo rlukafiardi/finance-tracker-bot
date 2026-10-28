@@ -121,6 +121,20 @@ and the dashboard answers "how much did I spend / save this month".
 - 2026-10-28: Category fixes without cancelling (my request): while a log preview waits, "ganti kategori jadi X" edits
   the last transaction of that preview (prepareEditPending_), and a saved row can be corrected the same way. A category
   that does not exist yet is created when I confirm (action.newCategory), instead of falling back to Lainnya.
+- 2026-10-28: Gmail POC passed (my call, "satisfied enough"): `Gmail.gs` (advanced Gmail service, explicit
+  `gmail.readonly` scope in the manifest instead of GmailApp's full-mail scope) and `EmailParse.gs` (one regex parser
+  per template, no Gemini, unknown types reported as "belum didukung", never guessed). Covered: BNI QRIS, BNI e-wallet
+  top-up (transfer + Biaya Admin fee row from the email), BCA QRIS. `previewEmails()` is parse-only (Telegram message,
+  no Sheet writes). Gotchas: `Gmail.Users.Messages.get` returns `body.data` as bytes, not base64; scheduled triggers run
+  HEAD code, so a new scope must be authorized before the next trigger fires. Parser tests use sanitized fixtures
+  (`runEmailTests`).
+- 2026-10-28: Gmail import built (my picks): approval always first; merchant category = earlier category of the same
+  merchant, else one Gemini call (`categorizeMerchants_`) for the new ones, Lainnya plus a visible warning if Gemini
+  fails; starts from the day `installEmailImport()` ran (`EMAIL_SINCE`, no backfill). Stateless queue: only settled
+  emails go to the `email_log` tab, so a batch replaced by chat is rebuilt at the next run; the import never replaces
+  another pending preview. Batch cap 12 because the PENDING script property is limited to 9 KB. Duplicate = same
+  type, account(s) and amount within ±1 day of an existing row. Edit before approving by number (`correction.item`).
+  Email text is never stored (`raw_message` = "email").
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in my private Telegram group,

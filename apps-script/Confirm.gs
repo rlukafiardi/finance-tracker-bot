@@ -87,6 +87,7 @@ function resolvePending_(to, p, confirmed, viaButton) {
       result = '⚠️ Gagal menyimpan: ' + err.message;
     }
   } else {
+    if (p.action.kind === 'emails') settleEmails_(p.action, 'skipped');
     result = '❌ ' + line_('cancelled');
   }
 
@@ -106,6 +107,7 @@ function runAction_(action) {
     case 'delete': return commitDelete_(action);
     case 'account': return commitAccount_(action);
     case 'rename': return commitRename_(action);
+    case 'emails': return commitEmails_(action);
     case 'category': return commitCategory_(action);
     case 'budget': return commitBudget_(action);
     default: throw new Error('unknown action ' + action.kind);

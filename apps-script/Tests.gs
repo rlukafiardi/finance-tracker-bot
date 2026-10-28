@@ -112,3 +112,101 @@ function runExamples() {
   });
   console.log(pass + '/' + EXAMPLES.length + ' passed');
 }
+
+// ---- Email parsers: text copied from real notifications, with the name replaced and numbers masked ----------
+
+const EMAIL_FIXTURES = {
+  bniQris: [
+    'Transaksi berhasil! ', ' Hai, TEST USER',
+    ' Terima kasih udah bertransaksi dengan wondr by BNI! Kamu baru aja bayar pakai QRIS dengan detail sebagai berikut:',
+    ' Penerima ', ' Apfin ', ' Kota Jakarta Ti, 13860, ID ', ' Sumber dana ', ' TEST USER ', ' TAPLUS • *******002 ',
+    ' Tanggal & waktu transaksi ', ' Tanggal 28 Okt 2026 ', ' Waktu 19:41:38 WIB ', ' Detail pembayaran ',
+    ' Nominal Rp17.000 ', ' Total Rp17.000 ', ' Jenis transaksi QRIS ',
+  ].join('\n'),
+  bniTopup: [
+    'Top-up berhasil! ', ' Hai, TEST USER',
+    ' Terima kasih udah memilih wondr by BNI untuk transaksi kamu! Kamu baru aja top-up e-Wallet dengan detail sebagai berikut:',
+    ' Penerima ', ' TEST USER ', ' GoPay • 62*******1169 ', ' Sumber dana ', ' TEST USER ', ' TAPLUS • *******002 ',
+    ' Tanggal & waktu top-up ', ' Tanggal 28 Oktober 2026 ', ' Waktu 15:22:41 WIB ', ' Detail top-up ',
+    ' Nominal Rp200.000 ', ' Biaya transaksi Rp1.000 ', ' Total Rp201.000 ',
+  ].join('\n'),
+  bniOther: [
+    'Transaksi berhasil! ', ' Hai, TEST USER',
+    ' Terima kasih! Kamu baru aja transfer ke rekening lain dengan detail sebagai berikut:',
+    ' Penerima ', ' SOMEONE ', ' Tanggal 28 Okt 2026 ', ' Nominal Rp50.000 ', ' Total Rp56.500 ',
+  ].join('\n'),
+  bcaQris: [
+    'Hello TEST USER,', ' You just made a transaction through myBCA.', ' Status ', ' : ', ' Successful ',
+    ' Transaction Date ', ' : ', ' 23 Oct 2026 16:16:29 ', ' Transaction Type ', ' : ', ' QRIS Payment ',
+    ' Payment to ', ' : ', ' Social Brew Coffee ', ' Source of Fund ', ' : ', ' TAHAPAN - 8780****16 ',
+    ' Total Payment ', ' : ', ' IDR 330,000.00 ',
+  ].join('\n'),
+  bcaTransfer: [
+    'Hello TEST USER,', ' Status ', ' : ', ' Successful ', ' Transaction Date ', ' : ', ' 23 Oct 2026 16:16:29 ',
+    ' Transaction Type ', ' : ', ' Transfer to BCA Account ', ' Total Payment ', ' : ', ' IDR 100,000.00 ',
+  ].join('\n'),
+};
+
+function runEmailTests() {
+  const cases = [
+    ['BNI', 'bniQris', { txs: [{ date: '2026-10-28', amount: 17000, type: 'expense', account: 'BNI', merchant: 'Apfin' }] }],
+    ['BNI', 'bniTopup', { txs: [
+      { date: '2026-10-28', amount: 200000, type: 'transfer', account: 'BNI', to_account: 'GoPay' },
+      { date: '2026-10-28', amount: 1000, type: 'expense', account: 'BNI', category: 'Biaya Admin' },
+    ] }],
+    ['BNI', 'bniOther', { error: 'belum didukung (transfer ke rekening lain)' }],
+    ['BCA', 'bcaQris', { txs: [{ date: '2026-10-23', amount: 330000, type: 'expense', account: 'BCA', merchant: 'Social Brew Coffee' }] }],
+    ['BCA', 'bcaTransfer', { error: 'belum didukung (Transfer to BCA Account)' }],
+  ];
+  let pass = 0;
+  cases.forEach(function (c) {
+    const got = parseBankEmail_(c[0], EMAIL_FIXTURES[c[1]]);
+    const want = c[2];
+    const problems = [];
+    if (want.error || got.error) {
+      if (want.error !== got.error) problems.push('error ' + got.error + ' != ' + want.error);
+    } else if (got.txs.length !== want.txs.length) {
+      problems.push('txs ' + got.txs.length + ' != ' + want.txs.length);
+    } else {
+      want.txs.forEach(function (w, i) {
+        Object.keys(w).forEach(function (k) {
+          if (got.txs[i][k] !== w[k]) problems.push('tx' + i + '.' + k + ' ' + got.txs[i][k] + ' != ' + w[k]);
+        });
+      });
+    }
+    console.log((problems.length ? 'FAIL ' : 'PASS ') + c[1] + (problems.length ? ': ' + problems.join('; ') : ''));
+    if (!problems.length) pass++;
+  });
+  console.log(pass + '/' + cases.length + ' passed');
+}
+
+// ---- Email import: duplicate check and merchant category lookup ------------------------------------------
+
+function runEmailImportTests() {
+  const rows = [
+    { type: 'expense', amount: 17000, account: 'BNI', to_account: '', date: '2026-10-28', merchant: 'Apfin', category: 'Makan' },
+    { type: 'expense', amount: 17000, account: 'BNI', to_account: '', date: '2026-10-20', merchant: 'Apfin', category: 'Makan' },
+    { type: 'expense', amount: 9000, account: 'BNI', to_account: '', date: '2026-10-21', merchant: 'apfin', category: 'Lainnya' },
+    { type: 'expense', amount: 5000, account: 'BNI', to_account: '', date: '2026-10-22', merchant: 'Parkir', category: 'Transport' },
+    { type: 'transfer', amount: 200000, account: 'BNI', to_account: 'GoPay', date: '2026-10-28', merchant: '', category: 'Transfer' },
+  ];
+  const tx = function (o) { return Object.assign({ type: 'expense', account: 'BNI', to_account: '', date: '2026-10-28' }, o); };
+  const checks = [
+    ['same row is a duplicate', isDuplicateTx_(tx({ amount: 17000 }), rows) === true],
+    ['one day later is a duplicate', isDuplicateTx_(tx({ amount: 17000, date: '2026-10-29' }), rows) === true],
+    ['two days later is new', isDuplicateTx_(tx({ amount: 17000, date: '2026-10-31' }), rows) === false],
+    ['other amount is new', isDuplicateTx_(tx({ amount: 18000 }), rows) === false],
+    ['other account is new', isDuplicateTx_(tx({ amount: 17000, account: 'BCA' }), rows) === false],
+    ['account compare ignores case', isDuplicateTx_(tx({ amount: 17000, account: 'bni' }), rows) === true],
+    ['transfer needs the same destination', isDuplicateTx_(tx({ type: 'transfer', amount: 200000, to_account: 'OVO' }), rows) === false],
+    ['transfer with same destination', isDuplicateTx_(tx({ type: 'transfer', amount: 200000, to_account: 'gopay' }), rows) === true],
+    ['merchant category by most used, ignoring Lainnya and case', lookupMerchantCategory_('APFIN', rows) === 'Makan'],
+    ['unknown merchant', lookupMerchantCategory_('Social Brew', rows) === null],
+  ];
+  let pass = 0;
+  checks.forEach(function (c) {
+    console.log((c[1] ? 'PASS ' : 'FAIL ') + c[0]);
+    if (c[1]) pass++;
+  });
+  console.log(pass + '/' + checks.length + ' passed');
+}
