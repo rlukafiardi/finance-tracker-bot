@@ -103,7 +103,8 @@ and the dashboard answers "how much did I spend / save this month".
   changes (web app deployment @6+). Logging with ✅/❌ confirmation, corrections, delete/undo, accounts with kinds
   and live balances (`current_balance` formula), budgets with warnings, summaries, robot persona.
   README documents usage, schema, config, setup and troubleshooting.
-- `runExamples()` not re-run after the account-kinds prompt change (26 cases): skipped by my choice, live use works.
+- 2026-10-28: chat intents (account, budget, category, help, delete by id), the dashboard tab and the daily
+  refresh schedule checked by me in live use.
 - Feature backlog, in priority order: receipt photos and voice notes via Gemini multimodal; recurring entries;
   savings goals. WhatsApp Cloud API is parked as a possible second channel.
 - Next: IDX technical analysis as its own project in another topic, with topic routing added to `relay/worker.js`.
