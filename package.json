@@ -1,0 +1,26 @@
+{
+  "name": "finance-tracker-bot",
+  "version": "1.0.0",
+  "description": "Personal finance tracker: send a message to a Telegram bot (\"makan siang 35rb gofood\", \"gaji 15jt masuk\", \"nabung 2jt\"), Gemini parses it, and a Google Apps Script web app writes it to a Google Sheet. Looker Studio reads the Sheet for spending, income and savings. Runs entirely on free tiers, no card, no server.",
+  "scripts": {
+    "check": "f=\"${TMPDIR:-/tmp}/gas-check.js\"; cat apps-script/*.gs > \"$f\" && node --check \"$f\" && echo \"Syntax OK\"",
+    "login": "clasp --auth .clasp-auth login",
+    "status": "clasp --auth .clasp-auth show-file-status",
+    "push": "npm run check && clasp --auth .clasp-auth push --force"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rlukafiardi/finance-tracker-bot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/rlukafiardi/finance-tracker-bot/issues"
+  },
+  "homepage": "https://github.com/rlukafiardi/finance-tracker-bot#readme",
+  "devDependencies": {
+    "@google/clasp": "^3.4.1"
+  }
+}
