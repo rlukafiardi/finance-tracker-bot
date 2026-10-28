@@ -90,6 +90,11 @@ and the dashboard answers "how much did I spend / save this month".
   (opening balances are not income, so sisa can be negative early in a month). "Tabungan" (🪙, no pig icon) is
   the current balance of tabungan-kind accounts, shown on the dashboard and in the recaps. The old "sisa kas"
   (income − expense − saving) was merged into Sisa so only one number has that name.
+- 2026-10-28: Tabungan redefined again (my request, I never set money aside from income): Tabungan = balance of all
+  accounts except investasi and e-wallet (NOT_TABUNGAN in Sheet.gs). The tabungan-kind special cases and the
+  "dipindah ke tabungan" line are removed; sumRows_ no longer needs ctx and ignores transfers and saving rows. The
+  `tabungan` kind stays only as a label. Known gap: my October salary (25 Oct) predates the bot, so October shows
+  no income and a negative Sisa; November onward is complete.
 - 2026-10-28: Accounts can be set up by chat: Gemini intent "account" with account_setup {name, opening, kind};
   /akun and chat share prepareAccount_ (same validation and ✅/❌ preview).
 - 2026-10-28: Every slash command except /whereami also works by chat (my request): intents budget, category,
