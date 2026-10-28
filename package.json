@@ -1,7 +1,7 @@
 {
   "name": "finance-tracker-bot",
   "version": "1.0.0",
-  "description": "Personal finance tracker: send a message to a Telegram bot (\"makan siang 35rb gofood\", \"gaji 15jt masuk\", \"nabung 2jt\"), Gemini parses it, and a Google Apps Script web app writes it to a Google Sheet. Looker Studio reads the Sheet for spending, income and savings. Runs entirely on free tiers, no card, no server.",
+  "description": "Personal finance tracker: send a message to a Telegram bot (\"makan siang 35rb gofood\", \"gaji 15jt masuk\", \"nabung 2jt\"), Gemini parses it, and a Google Apps Script web app writes it to a Google Sheet. A generated dashboard tab and weekly/monthly recaps show spending, income and savings. Runs entirely on free tiers, no card, no server.",
   "scripts": {
     "check": "f=\"${TMPDIR:-/tmp}/gas-check.js\"; cat apps-script/*.gs > \"$f\" && node --check \"$f\" && echo \"Syntax OK\"",
     "login": "clasp --auth .clasp-auth/.clasprc.json login",

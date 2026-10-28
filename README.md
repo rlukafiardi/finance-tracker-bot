@@ -7,31 +7,28 @@ It runs entirely on free tiers: no server, no credit card, $0 per month.
 - **Chat:** Telegram group "Radikal AI Assistant", topic 💰 Finance (other topics are reserved for future features)
 - **Brain:** Gemini (free tier) turns free text into structured transactions; all numbers come from code, not the model
 - **Backend:** Google Apps Script web app
-- **Storage:** Google Sheet (four tabs), with a live balance per account
+- **Storage:** Google Sheet (four data tabs), with a live balance per account
+- **Dashboard:** a generated tab in the same Sheet, plus weekly/monthly recaps in the chat
 - **Relay:** a Cloudflare Worker in front of Apps Script, so replies are instant
 
 ## How it works
 
-```mermaid
-flowchart LR
-  U["Me in Telegram<br/>topic 💰 Finance"] -->|message or ✅/❌ tap| TG[Telegram Bot API]
-  TG -->|webhook + secret header| W[Cloudflare Worker relay]
-  W -->|"POST ?secret=…, answers Telegram 200 at once"| AS[Apps Script web app]
-  AS -->|parse free text| G[Gemini free tier]
-  AS -->|read / write| S[(Google Sheet)]
-  AS -->|preview, result| TG
-  S -.->|planned| L[Looker Studio dashboard]
-```
+![Architecture](docs/architecture.svg)
+
+The diagram is generated: edit `docs/architecture.py` and run `python3 docs/architecture.py` (needs the
+workspace `architecture-diagram` skill). `docs/architecture.excalidraw` opens in excalidraw.com for a closer look.
 
 1. **Access check** (`Code.gs`): only my user id, only allowed chats, and in the group only the Finance topic.
    Everything else is ignored silently.
 2. **Routing**: a "ya"/"batal" answers a pending confirmation; `/commands` are handled in code (no Gemini call);
-   anything else goes to Gemini, which returns an intent (`log`, `correct`, `delete`, `query`, `other`),
-   the transactions, and a one-line joke (`quip`).
+   anything else goes to Gemini, which returns an intent (`log`, `correct`, `delete`, `query`, `account`,
+   `budget`, `category`, `help`, `other`), its details, and a one-line joke (`quip`).
 3. **Validation** (`Sheet.gs`): amounts, types, categories and accounts are checked against the Sheet.
 4. **Confirmation** (`Confirm.gs`): every change shows a preview with ✅ Simpan / ❌ Batal. Nothing is written
    until I confirm. Questions and lists answer directly.
 5. **Write and reply**: the row is written, the preview turns into the result, plus budget warnings if any.
+   After a single transfer the result also offers admin-fee buttons (`Fees.gs`). The dashboard tab is rebuilt.
+6. **Schedules** (`Reports.gs`): weekly and monthly recaps, the monthly backup, and a daily dashboard refresh.
 
 Why the relay: Apps Script answers every webhook POST with a 302 redirect. Telegram treats that as a failed
 delivery, keeps resending the first message, and newer messages queue behind it forever. The Worker answers
@@ -122,6 +119,7 @@ hand. Don't edit the tab itself: it is overwritten.
 | `categories` | `type, category` | The only categories Gemini may use. Edit rows or use `/kategori`. |
 | `accounts` | `account, opening_balance, current_balance, kind` | `current_balance` is a live SUMIFS formula. `kind` is bank, ewallet, cash, tabungan, investasi or lainnya, guessed from the name. |
 | `budgets` | `category, monthly_limit` | Expense categories only. |
+| `dashboard`, `dashboard_data` | generated | Rebuilt by `refreshDashboard()`; never edit by hand. |
 
 Definitions used everywhere (bot answers and formulas agree):
 
@@ -154,6 +152,7 @@ Definitions used everywhere (bot answers and formulas agree):
 | `apps-script/Setup.gs` | `setup()`, webhook helpers, `checkConfig()` |
 | `apps-script/Tests.gs` | `runExamples()`: 40 messages with expected parses |
 | `relay/worker.js` | Cloudflare Worker relay |
+| `docs/` | Architecture diagram: `architecture.py` (source), `.excalidraw` and `.svg` (generated) |
 | `CLAUDE.md` | Project notes: decisions and status |
 
 ## Configuration
@@ -197,7 +196,7 @@ Functions to run from the Apps Script editor:
 | Function | When |
 |---|---|
 | `setup()` | After schema changes. Safe to re-run: adds missing tabs, headers, formulas, kinds; never overwrites rows. |
-| `runExamples()` | After prompt changes. ~2.5 min, uses ~26 Gemini requests, writes nothing. |
+| `runExamples()` | After prompt changes. ~3.5 min, uses ~40 Gemini requests, writes nothing. |
 | `checkConfig()` | When the bot is silent. Prints every setting check without showing secrets. |
 | `setWebhook()` | Point Telegram at the relay (`RELAY_URL`) and drop queued updates. |
 | `installSchedules()` | Once, to start the scheduled recaps, backup and daily dashboard refresh. Safe to re-run (replaces all triggers). Asks for Drive access (backup). |
@@ -212,7 +211,7 @@ Functions to run from the Apps Script editor:
    Get a Gemini API key at aistudio.google.com.
 3. **Code:** `npm install`, `npm run login`, `npm run push`.
 4. **Properties:** set the required Script Properties above.
-5. **Sheet:** run `setup()`, then `runExamples()` (expect 26/26).
+5. **Sheet:** run `setup()`, then `runExamples()` (expect 40/40).
 6. **Web app:** Deploy > New deployment > Web app, execute as Me, access Anyone. Put the `/exec` URL in
    `WEBAPP_URL` and its deployment id in the `deploy` script in `package.json`.
 7. **Relay:** on a free Cloudflare account, create a Worker, paste `relay/worker.js`, add the two Worker secrets,
@@ -221,6 +220,7 @@ Functions to run from the Apps Script editor:
 9. **Ids:** send `/whereami` in the Finance topic and set `ALLOWED_USER_ID`, `ALLOWED_CHAT_ID` (group id first:
    scheduled reports go to the first id), `FINANCE_TOPIC_ID`.
 10. **Schedules:** run `installSchedules()`.
+
 ## Troubleshooting
 
 | Symptom | Check |
