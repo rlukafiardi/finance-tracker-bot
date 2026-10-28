@@ -246,8 +246,9 @@ function commitLog_(a) {
   createAccounts_(a.newAccounts);
   const now = new Date();
   const rows = a.txs.map(function (t) {
+    t.id = Utilities.getUuid().slice(0, 8); // kept on the action so feeButtons_ can point at the saved transfer
     return [
-      Utilities.getUuid().slice(0, 8),
+      t.id,
       Utilities.parseDate(t.date, TZ, 'yyyy-MM-dd'),
       t.amount, t.type, t.category, t.account, t.merchant, t.note, a.raw, now, t.to_account,
     ];
@@ -257,14 +258,16 @@ function commitLog_(a) {
   return '✅ ' + line_('saved') + '\n\n' + a.txs.map(describe_).join('\n') + budgetWarnings_(a.txs);
 }
 
-// ---- Correct (always the last row: "yang tadi") ----------------------------------------------------------
+// ---- Correct (the last row, "yang tadi", or a row by id from /terakhir) ----------------------------------
 
 function prepareCorrect_(corr, ctx) {
   const sh = sheet_('transactions');
-  const last = sh.getLastRow();
-  if (last < 2) return { reply: 'Belum ada transaksi untuk dikoreksi 🤖' };
+  const id = corr && corr.id ? String(corr.id).replace(/^#/, '') : '';
+  const r = id ? findRowById_(sh, id) : sh.getLastRow();
+  if (id && r < 0) return { reply: 'ID ' + id + ' tidak ditemukan 🔍 Lihat /terakhir.' };
+  if (r < 2) return { reply: 'Belum ada transaksi untuk dikoreksi 🤖' };
 
-  const before = rowToTx_(sh.getRange(last, 1, 1, SHEET_HEADERS.length).getValues()[0]);
+  const before = rowToTx_(sh.getRange(r, 1, 1, SHEET_HEADERS.length).getValues()[0]);
   const next = Object.assign({}, before);
   let changed = false;
   ['amount', 'category', 'type', 'date', 'account'].forEach(function (k) {
@@ -281,7 +284,7 @@ function prepareCorrect_(corr, ctx) {
   collectNewAccounts_(n.newAccounts, ctx, created);
   return {
     action: { kind: 'correct', id: before.id, tx: n.tx, newAccounts: created },
-    preview: '✏️ Ubah transaksi terakhir?\n\nSebelum:\n' + describe_(before) +
+    preview: '✏️ Ubah ' + (id ? 'transaksi #' + id : 'transaksi terakhir') + '?\n\nSebelum:\n' + describe_(before) +
       '\n\nSesudah:\n' + describe_(n.tx) + newAccountsNote_(created),
   };
 }
@@ -485,15 +488,28 @@ function answerQuery_(q, ctx) {
   const range = periodRange_(q.period || 'month');
   if (!range) return 'Periode itu belum didukung 🤖 Coba: hari ini, minggu ini, bulan ini, atau sampai sekarang.';
 
+  // Filters: category exact, account by name (any case), merchant as a substring ("gofood" matches "GoFood Sate").
+  const filters = [];
   let rows = readTransactions_().filter(function (r) { return r.date >= range.from && r.date <= range.to; });
   if (q.category) {
     rows = rows.filter(function (r) { return r.category.toLowerCase() === String(q.category).toLowerCase(); });
+    filters.push(q.category);
+  }
+  if (q.account) {
+    const account = matchAccount_(q.account, ctx.accounts) || q.account;
+    rows = rows.filter(function (r) { return r.account.toLowerCase() === account.toLowerCase(); });
+    filters.push('pakai ' + account);
+  }
+  if (q.merchant) {
+    const merchant = String(q.merchant).toLowerCase();
+    rows = rows.filter(function (r) { return r.merchant.toLowerCase().indexOf(merchant) >= 0; });
+    filters.push('di ' + q.merchant);
   }
 
   const sum = sumRows_(rows);
   const byCat = sum.byCat;
 
-  const label = range.label + (q.category ? ' (' + q.category + ')' : '');
+  const label = range.label + (filters.length ? ' (' + filters.join(', ') + ')' : '');
   switch (q.metric) {
     case 'income':
       return 'Pemasukan ' + label + ': ' + rupiah_(sum.income);
@@ -507,8 +523,12 @@ function answerQuery_(q, ctx) {
         '\n(pemasukan ' + rupiah_(sum.income) + ', pengeluaran ' + rupiah_(sum.expense) + ')';
     default: {
       let out = 'Pengeluaran ' + label + ': ' + rupiah_(sum.expense);
+      if (filters.length) {
+        const n = rows.filter(function (r) { return r.type === 'expense'; }).length;
+        out += ' (' + n + ' transaksi)';
+      }
       const top = Object.keys(byCat).sort(function (a, b) { return byCat[b] - byCat[a]; }).slice(0, 3);
-      if (!q.category && top.length) {
+      if (!q.category && !q.merchant && top.length) {
         out += '\nTerbesar: ' + top.map(function (c) { return c + ' ' + rupiah_(byCat[c]); }).join(', ');
       }
       return out;

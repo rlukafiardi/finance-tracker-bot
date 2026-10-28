@@ -31,7 +31,7 @@ const LEFT_COL = 2;  // chart blocks: B..I (654px) on the left, K..O (432px) on 
 const RIGHT_COL = 11;
 const LEFT_W = 654;
 const RIGHT_W = 432;
-const BLOCK_ROWS = 16;
+const BLOCK_ROWS = 14; // 14 rows x 24px = 336px, just taller than CHART_H
 const CHART_H = 330;
 
 function clamp_(n, lo, hi) {
@@ -123,20 +123,25 @@ function dashboardData_(all, ctx, today, weekStart, budgets) {
 
   const rateNow = rate(cur);
   const ratePrev = rate(prev);
+  // A card sparkline needs two points: one month draws as a solid block, no values as #N/A.
+  const spark = function (col, color) {
+    const points = trend.filter(function (row) { return row[col - 1] !== ''; }).length;
+    return points >= 2 ? [col, color] : null;
+  };
   const kpis = [
-    { label: 'PENGELUARAN', value: compactRp_(cur.expense), bg: CARD_BG.expense, spark: [3, COLOR_EXPENSE],
+    { label: 'PENGELUARAN', value: compactRp_(cur.expense), bg: CARD_BG.expense, spark: spark(3, COLOR_EXPENSE),
       delta: pctDelta_(cur.expense, prev.expense, false) },
-    { label: 'PEMASUKAN', value: compactRp_(cur.income), bg: CARD_BG.income, spark: [2, COLOR_INCOME],
+    { label: 'PEMASUKAN', value: compactRp_(cur.income), bg: CARD_BG.income, spark: spark(2, COLOR_INCOME),
       delta: pctDelta_(cur.income, prev.income, true) },
-    { label: 'SISA BULAN INI', value: compactRp_(cur.kept), bg: CARD_BG.sisa, spark: [4, COLOR_SISA],
+    { label: 'SISA BULAN INI', value: compactRp_(cur.kept), bg: CARD_BG.sisa, spark: spark(4, COLOR_SISA),
       delta: pctDelta_(cur.kept, prev.kept, true) },
     { label: 'SAVINGS RATE', value: rateNow === null ? '–' : Math.round(rateNow * 100) + '%', bg: CARD_BG.rate,
-      spark: [5, COLOR_NEUTRAL],
+      spark: spark(5, COLOR_NEUTRAL),
       delta: rateNow === null || ratePrev === null
         ? { arrow: '', text: 'belum ada pembanding', good: null }
         : trend_(Math.round((rateNow - ratePrev) * 100), Math.abs(Math.round((rateNow - ratePrev) * 100)) + ' poin vs bulan lalu', true) },
     { label: 'TABUNGAN SEKARANG', value: nowBal === null ? '–' : compactRp_(nowBal), bg: CARD_BG.tabungan,
-      spark: [6, COLOR_NEUTRAL],
+      spark: spark(6, COLOR_NEUTRAL),
       delta: nowBal === null
         ? { arrow: '', text: 'belum ada akun bank atau cash', good: null }
         : trend_(nowBal - startBal, compactRp_(Math.abs(nowBal - startBal)) + ' sejak awal bulan', true) },
@@ -254,7 +259,8 @@ function renderDashboard_(sh, ds, d, updated) {
     sh.getRange(4, c).setValue(k.label).setFontSize(9).setFontWeight('bold').setFontColor(INK2);
     sh.getRange(5, c).setValue(k.value).setFontSize(22).setFontWeight('bold');
     setDelta_(sh.getRange(6, c), k.delta);
-    sh.getRange(7, c).setFormula(sparkColumn_(k.spark[0], trendRows, k.spark[1]));
+    if (k.spark) sh.getRange(7, c).setFormula(sparkColumn_(k.spark[0], trendRows, k.spark[1]));
+    else sh.getRange(7, c).setValue('tren muncul mulai bulan ke-2').setFontSize(9).setFontColor(INK2);
   });
 
   // Block A: monthly trend (left) and this month's categories (right).

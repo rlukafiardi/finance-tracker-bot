@@ -30,10 +30,10 @@ function closeOldPending_() {
 function askConfirm_(to, action, preview) {
   closeOldPending_();
   const id = Utilities.getUuid().slice(0, 8);
-  const messageId = sendMessage_(to, preview, [
+  const messageId = sendMessage_(to, preview, [[
     { text: '✅ Simpan', callback_data: 'ok:' + id },
     { text: '❌ Batal', callback_data: 'no:' + id },
-  ]);
+  ]]);
   PropertiesService.getScriptProperties().setProperty('PENDING', JSON.stringify({
     id: id, action: action, preview: preview, chatId: to.chatId, messageId: messageId, createdAt: Date.now(),
   }));
@@ -57,6 +57,10 @@ function handleConfirmText_(to, text) {
 function handleCallback_(cb) {
   const to = { chatId: cb.message.chat.id, threadId: cb.message.message_thread_id || null };
   const parts = String(cb.data || '').split(':');
+  if (parts[0] === 'fee') {
+    handleFeeCallback_(cb, to, parts);
+    return;
+  }
   const p = getPending_();
   if (!p || p.id !== parts[1]) {
     answerCallback_(cb.id, 'Sudah kedaluwarsa ⌛');
@@ -72,9 +76,12 @@ function handleCallback_(cb) {
 function resolvePending_(to, p, confirmed, viaButton) {
   clearPending_();
   let result;
+  let buttons = null;
   if (confirmed) {
     try {
       result = runAction_(p.action);
+      buttons = feeButtons_(p.action);
+      if (buttons) result += '\n\n' + FEE_QUESTION;
     } catch (err) {
       console.error(err && err.stack ? err.stack : err);
       result = '⚠️ Gagal menyimpan: ' + err.message;
@@ -84,10 +91,10 @@ function resolvePending_(to, p, confirmed, viaButton) {
   }
 
   if (viaButton && p.messageId) {
-    editMessage_(p.chatId, p.messageId, result);
+    editMessage_(p.chatId, p.messageId, result, buttons);
   } else {
     if (p.messageId) editMessage_(p.chatId, p.messageId, p.preview + '\n\n' + (confirmed ? '✅ Dikonfirmasi' : '❌ Dibatalkan'));
-    sendMessage_(to, result);
+    sendMessage_(to, result, buttons);
   }
   if (confirmed) refreshDashboardAfterChange_();
 }

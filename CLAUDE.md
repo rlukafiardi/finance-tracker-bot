@@ -106,6 +106,14 @@ and the dashboard answers "how much did I spend / save this month".
 - 2026-10-28: Every slash command except /whereami also works by chat (my request): intents budget, category,
   help, and delete_id for delete-by-id; each shares a prepare*_ function with its command. Slash commands stay as
   optional shortcuts (no Gemini call).
+- 2026-10-28: Spending lookups by merchant (substring, case-insensitive) or account: query.merchant / query.account
+  filter the rows, reply shows the count. Older entries are corrected by id (correction.id, ids from /terakhir);
+  without an id, correct still edits the last row.
+- 2026-10-28: Admin-fee reminder (Fees.gs, my request): after a single transfer is saved (no expense in the same
+  message), the reply has buttons + 1rb / 2,5rb / 6,5rb / Gratis. A tap logs the fee at once (the tap is the
+  confirmation) as an expense on the source account, category Biaya Admin (fallback Lainnya), with the transfer's
+  created_at so "hapus yang tadi" removes both; a double tap is ignored. 6,5rb (online transfer) is my assumption,
+  unverified against the bank. Dashboard card sparklines show only from the second month.
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in group "Radikal AI Assistant🗿" (chat -1004451166719),
@@ -116,9 +124,9 @@ and the dashboard answers "how much did I spend / save this month".
   README documents usage, schema, config, setup and troubleshooting.
 - 2026-10-28: chat intents (account, budget, category, help, delete by id), the dashboard tab and the daily
   refresh schedule checked by me in live use.
-- Feature backlog (my picks, not scheduled): spending lookups by merchant or account ("berapa total gofood bulan
-  ini?", currently only by category); edit older entries by id (correct works only on the last transaction);
-  recurring entries; receipt photos and voice notes via Gemini multimodal; savings goals. Other ideas I
+- 2026-10-28: merchant/account lookups, correct by id and admin-fee buttons live (deployment @18), checked by me
+  in Telegram along with the dashboard fixes.
+- Feature backlog (my picks, not scheduled): recurring entries; receipt photos and voice notes via Gemini multimodal; savings goals. Other ideas I
   liked less: runway and forecast, net worth, debts and split bills, bill reminders, duplicate and large-expense
   warnings, streaks, monthly PDF. WhatsApp Cloud API is parked as a possible second channel.
 - Next: IDX technical analysis as its own project in another topic, with topic routing added to `relay/worker.js`.

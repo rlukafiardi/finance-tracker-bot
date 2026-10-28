@@ -2,7 +2,7 @@
 // Commands that change data return { action, preview } and wait for ✅/❌ (see Confirm.gs).
 
 const HELP_TEXT = [
-  '🤖 BEEP BOOP. Finance Bot v1.2 online.',
+  '🤖 BEEP BOOP. Finance Bot v1.3 online.',
   'Ketik bebas, saya yang mengerti. 💸',
   '',
   '📝 CATAT',
@@ -11,14 +11,17 @@ const HELP_TEXT = [
   '› tap lrt 17k pake gopay',
   '› top up gopay pake bni 200k',
   '› nabung 2jt dari bca ke bibit',
+  '› transfer bca ke bni 1jt admin 2,5rb',
   '',
   '🛠 PERBAIKI',
   '› ubah yang tadi jadi 40rb',
+  '› ubah a1b2c3d4 jadi 40rb (id dari "5 transaksi terakhir")',
   '› hapus yang tadi',
   '› hapus transaksi a1b2c3d4',
   '',
   '📊 TANYA',
   '› pengeluaran minggu ini?',
+  '› berapa total gofood bulan ini? · pengeluaran pake gopay?',
   '› savings rate bulan ini?',
   '› saldo semua akun? · saldo gopay?',
   '› berapa tabunganku sekarang?',

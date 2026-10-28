@@ -29,6 +29,7 @@ const RESPONSE_SCHEMA = {
       type: 'OBJECT',
       nullable: true,
       properties: {
+        id: { type: 'STRING', nullable: true },
         amount: { type: 'INTEGER', nullable: true },
         category: { type: 'STRING', nullable: true },
         type: { type: 'STRING', nullable: true },
@@ -46,6 +47,7 @@ const RESPONSE_SCHEMA = {
         limit: { type: 'INTEGER', nullable: true },
         category: { type: 'STRING', nullable: true },
         account: { type: 'STRING', nullable: true },
+        merchant: { type: 'STRING', nullable: true },
       },
     },
     account_setup: {
