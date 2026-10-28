@@ -60,8 +60,8 @@ function topCats_(byCat, n) {
 
 function totalsLines_(s, topN) {
   const lines = ['💸 Pengeluaran: ' + rupiah_(s.expense)];
-  if (s.expense) lines.push('   ' + topCats_(s.byCat, topN));
-  lines.push('💰 Pemasukan: ' + rupiah_(s.income) + ' · 🐷 Ditabung: ' + rupiah_(s.saving));
+  if (s.expense) lines.push('└ ' + topCats_(s.byCat, topN));
+  lines.push('💰 Pemasukan: ' + rupiah_(s.income), '🏦 Ditabung: ' + rupiah_(s.saving));
   return lines;
 }
 
@@ -94,7 +94,7 @@ function monthlySummary() {
     lines.push('', '🎯 Budget ' + title + ':');
     budgets.forEach(function (b) {
       const used = s.byCat[b.category] || 0;
-      lines.push('   ' + b.category + ': ' + rupiah_(used) + ' / ' + rupiah_(b.limit) + ' (' +
+      lines.push('└ ' + b.category + ': ' + rupiah_(used) + ' / ' + rupiah_(b.limit) + ' (' +
         Math.round(used / b.limit * 100) + '%)' + (used > b.limit ? ' 🚨' : ''));
     });
   }
