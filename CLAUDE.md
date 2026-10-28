@@ -53,6 +53,12 @@ and the dashboard answers "how much did I spend / save this month".
   (all .gs concatenated, so duplicate globals are caught) + `clasp push --force`. The repo is the source of truth.
 - 2026-10-28: `npm run deploy` = push + `clasp deploy -i <web app deployment id>`, so webhook mode gets new code
   without the manual "New version" step and the /exec URL never changes. Use it instead of push in webhook mode.
+- 2026-10-28: Savings are accounts now. `accounts.kind` (bank, ewallet, cash, tabungan, investasi, lainnya),
+  guessed from known names (Accounts.gs), set with `/akun <nama> <jenis>`. Tabungan and investasi are separate
+  (my choice); dana darurat is just a tabungan account. "berapa tabunganku" = balance of tabungan accounts.
+  "nabung X dari A ke B" is a transfer; the `saving` type remains only when no destination is named.
+  The saving metric = saving rows + net transfers into tabungan accounts. Queries: period "all" added
+  ("sekarang", "total"); no period defaults to this month.
 - 2026-10-28: Delete ("hapus yang tadi", /hapus) removes all rows of the latest message (same created_at), so a
   multi-item message undoes as one unit; /hapus <id> removes one row. Budgets are monthly per expense category
   (`budgets` tab); replies warn at >= 80% on every expense in that category, not only when crossing.

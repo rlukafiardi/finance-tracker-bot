@@ -6,7 +6,7 @@ function buildPrompt_(today, ctx) {
     return '- ' + t + ': ' + ctx.cats[t].join(', ');
   }).join('\n');
   const accountList = ctx.accounts.length
-    ? ctx.accounts.map(function (a) { return a.name; }).join(', ')
+    ? ctx.accounts.map(function (a) { return a.kind ? a.name + ' (' + a.kind + ')' : a.name; }).join(', ')
     : '(none yet)';
 
   return [
@@ -28,6 +28,8 @@ function buildPrompt_(today, ctx) {
     '- Transfers: account = the source (money leaves it), to_account = the destination (money arrives).',
     '  "top up gopay pake bni 200k" -> account BNI, to_account GoPay. "tarik tunai 500rb dari bca" -> account BCA, to_account Cash.',
     '  "transfer dari bca ke jago 1jt" -> account BCA, to_account Jago. For non-transfer types, to_account is null.',
+    '- Saving into a named account is a transfer: "nabung 2jt dari bca ke bibit" -> transfer, account BCA, to_account Bibit.',
+    '  Use type "saving" only when no destination account is named ("nabung 2jt", "beli reksadana 500rb").',
     '- If a fee is mentioned ("admin 1.5k"), add it as a separate expense transaction on the same account.',
     '- date: YYYY-MM-DD. Default to today. Resolve "kemarin", "tadi pagi", "senin lalu" against today.',
     '- merchant: shop or service if mentioned (Gofood, Indomaret, Grab, LRT, ...), else null.',
@@ -37,6 +39,9 @@ function buildPrompt_(today, ctx) {
     '  remove the previous entry ("hapus yang tadi", "batalkan", "undo"); "query" if asking for a summary',
     '  ("pengeluaran minggu ini?") or an account balance ("saldo gopay?", metric account_balance, account = that name,',
     '  null for all accounts) or the latest entries ("5 transaksi terakhir", metric recent, limit = that number, 5 if not given);',
+    '  current money in a kind of account is account_balance with account_kind: "berapa tabunganku (sekarang)?" -> tabungan,',
+    '  "investasiku?" -> investasi, "saldo e-wallet?" -> ewallet. period: "all" for "sekarang", "total", "selama ini";',
+    '  null when no period is mentioned;',
     '  "other" for anything else. For non-"log" intents, return an empty transactions list',
     '  and fill `correction` or `query` instead.',
     '- Never invent amounts. If the amount is missing or unclear, set intent "other" and explain in `reply_hint`.',

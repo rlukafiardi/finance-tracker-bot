@@ -11,6 +11,7 @@ const HELP_TEXT = [
   '› nabung 2jt',
   '› tap lrt 17k pake gopay',
   '› top up gopay pake bni 200k',
+  '› nabung 2jt dari bca ke bibit',
   '',
   '🛠 PERBAIKI',
   '› ubah yang tadi jadi 40rb',
@@ -20,11 +21,15 @@ const HELP_TEXT = [
   '› pengeluaran minggu ini?',
   '› savings rate bulan ini?',
   '› saldo gopay?',
+  '› berapa tabunganku sekarang?',
+  '› investasiku berapa?',
   '› 5 transaksi terakhir',
   '',
   '⚙️ PERINTAH',
-  '/saldo  saldo semua akun',
+  '/saldo  saldo semua akun per jenis',
   '/akun BNI 1,5jt  tambah akun / saldo awal',
+  '/akun Bibit investasi  ubah jenis akun',
+  '   (bank, ewallet, cash, tabungan, investasi, lainnya)',
   '/budget makan 1,5jt  budget bulanan (0 = hapus)',
   '/budget  status budget',
   '/kategori  daftar kategori',
@@ -136,28 +141,51 @@ function commitCategory_(a) {
   return '✅ Kategori ' + a.label + ' (' + a.type + ') siap dipakai!';
 }
 
-// /akun BNI 1,5jt  -> add the account, or set its opening balance if it exists
-// /akun Bank Jago  -> add the account with opening balance 0
+// /akun BNI 1,5jt            -> add the account (kind guessed from the name), or set its opening balance
+// /akun Bibit 5jt investasi  -> same, with an explicit kind
+// /akun Bibit investasi      -> change only the kind of an existing account
 function accountCommand_(args, ctx) {
-  if (!args.length) return 'Format: /akun <nama> [saldo awal], mis. /akun BNI 1,5jt';
-  const parsed = splitNameAmount_(args);
+  if (!args.length) {
+    return 'Format: /akun <nama> [saldo awal] [jenis], mis. /akun Bibit 5jt investasi\nJenis: ' + ACCOUNT_KINDS.join(', ');
+  }
+  const rest = args.slice();
+  const jenis = rest.length >= 2 ? parseKind_(rest[rest.length - 1]) : null;
+  if (jenis) rest.pop();
+  const parsed = splitNameAmount_(rest);
   if (parsed.name.length > 30) return 'Nama akun terlalu panjang (maks 30 karakter).';
   if (/^[=+\-@]/.test(parsed.name)) return 'Nama akun tidak boleh diawali = + - atau @.';
 
   const known = matchAccount_(parsed.name, ctx.accounts);
-  if (known && parsed.amount === null) return 'Akun ' + known + ' sudah ada. Atur saldo awal: /akun ' + known + ' <saldo>';
+  if (known) {
+    if (parsed.amount === null && !jenis) {
+      return 'Akun ' + known + ' sudah ada. Atur saldo awal: /akun ' + known + ' <saldo>, atau jenis: /akun ' + known + ' <jenis>';
+    }
+    const changes = [];
+    if (parsed.amount !== null) changes.push('saldo awal jadi ' + rupiah_(parsed.amount));
+    if (jenis) changes.push('jenis jadi ' + KIND_LABEL[jenis]);
+    return {
+      action: { kind: 'account', name: known, opening: parsed.amount, jenis: jenis },
+      preview: '🏦 Ubah akun ' + known + ': ' + changes.join(', ') + '?',
+    };
+  }
+  const kind = jenis || guessKind_(parsed.name);
   const opening = parsed.amount || 0;
   return {
-    action: { kind: 'account', name: known || parsed.name, opening: opening },
-    preview: known
-      ? '🏦 Atur saldo awal ' + known + ' jadi ' + rupiah_(opening) + '?'
-      : '🆕 Tambah akun ' + parsed.name + ' dengan saldo awal ' + rupiah_(opening) + '?',
+    action: { kind: 'account', name: parsed.name, opening: opening, jenis: kind },
+    preview: '🆕 Tambah akun ' + parsed.name + ' (' + KIND_LABEL[kind] + ') dengan saldo awal ' + rupiah_(opening) + '?' +
+      (jenis ? '' : '\nJenis salah? Tambahkan di akhir, mis. /akun ' + parsed.name + ' ' + opening + ' tabungan'),
   };
 }
 
+// opening/jenis null = keep the current value.
 function commitAccount_(a) {
   const known = matchAccount_(a.name, getAccounts_());
-  if (known) setOpening_(known, a.opening);
-  else addAccount_(a.name, a.opening);
-  return '✅ Akun ' + (known || a.name) + ' siap, saldo awal ' + rupiah_(a.opening) + ' 🏦';
+  if (known) {
+    if (a.opening !== null && a.opening !== undefined) setOpening_(known, a.opening);
+    if (a.jenis) setAccountKind_(known, a.jenis);
+    return '✅ Akun ' + known + ' diperbarui 🏦';
+  }
+  const kind = a.jenis || guessKind_(a.name);
+  addAccount_(a.name, a.opening || 0, kind);
+  return '✅ Akun ' + a.name + ' (' + KIND_LABEL[kind] + ') siap, saldo awal ' + rupiah_(a.opening || 0);
 }

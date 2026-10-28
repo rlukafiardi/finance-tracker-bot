@@ -26,10 +26,18 @@ const EXAMPLES = [
   { message: 'salah, pakai bca', expect: { intent: 'correct', transactions: [], correction: { account: 'BCA' } } },
   { message: 'hapus yang tadi', expect: { intent: 'delete', transactions: [] } },
   { message: '5 transaksi terakhir', expect: { intent: 'query', transactions: [], query: { metric: 'recent', limit: 5 } } },
+  { message: 'nabung 2jt dari bca ke bibit', expect: { intent: 'log', transactions: [{ amount: 2000000, type: 'transfer', account: 'BCA', to_account: 'Bibit' }] } },
+  { message: 'berapa tabunganku sekarang', expect: { intent: 'query', transactions: [], query: { metric: 'account_balance', account_kind: 'tabungan' } } },
+  { message: 'investasiku berapa?', expect: { intent: 'query', transactions: [], query: { metric: 'account_balance', account_kind: 'investasi' } } },
+  { message: 'total pengeluaran selama ini', expect: { intent: 'query', transactions: [], query: { metric: 'spending', period: 'all' } } },
 ];
 
 // Fixed accounts keep the tests independent of what is in the real accounts tab.
-const EXAMPLES_ACCOUNTS = [{ name: 'BNI', opening: 0 }, { name: 'GoPay', opening: 0 }, { name: 'BCA', opening: 0 }, { name: 'Cash', opening: 0 }];
+const EXAMPLES_ACCOUNTS = [
+  { name: 'BNI', opening: 0, kind: 'bank' }, { name: 'GoPay', opening: 0, kind: 'ewallet' },
+  { name: 'BCA', opening: 0, kind: 'bank' }, { name: 'Cash', opening: 0, kind: 'cash' },
+  { name: 'Bibit', opening: 0, kind: 'investasi' }, { name: 'Tabungan BCA', opening: 0, kind: 'tabungan' },
+];
 
 function same_(a, b) {
   return String(a).toLowerCase() === String(b).toLowerCase();

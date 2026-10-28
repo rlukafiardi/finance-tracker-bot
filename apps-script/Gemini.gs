@@ -40,7 +40,8 @@ const RESPONSE_SCHEMA = {
       nullable: true,
       properties: {
         metric: { type: 'STRING', enum: ['spending', 'income', 'saving', 'savings_rate', 'balance', 'account_balance', 'recent'] },
-        period: { type: 'STRING', enum: ['today', 'week', 'month', 'custom'], nullable: true },
+        period: { type: 'STRING', enum: ['today', 'week', 'month', 'all', 'custom'], nullable: true },
+        account_kind: { type: 'STRING', enum: ['bank', 'ewallet', 'cash', 'tabungan', 'investasi', 'lainnya'], nullable: true },
         limit: { type: 'INTEGER', nullable: true },
         category: { type: 'STRING', nullable: true },
         account: { type: 'STRING', nullable: true },
