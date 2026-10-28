@@ -69,6 +69,14 @@ Amounts understand `35rb`, `35k`, `15jt`, `1,5jt`, `2.500.000`. Dates understand
 
 Budget warnings appear on every expense in a category once it reaches 80% (⚠️) or 100% (🚨) of this month's limit.
 
+Scheduled messages (in the Finance topic, times in WIB, each within the hour):
+
+| When | Message |
+|---|---|
+| Every day 21:00 | Today's spending, top categories, income, saving, budget warnings (or a nudge if nothing was logged) |
+| Sunday 20:00 | The week (Mon–Sun), budget status, and a spending alert: ±20% versus the average of up to 4 earlier weeks, with the category that grew most |
+| 1st of the month 02:00 | Values-only backup of every tab into Google Drive > `finance-tracker backups` (old backups are kept) |
+
 ## Data model (Google Sheet)
 
 | Tab | Columns | Notes |
@@ -97,6 +105,7 @@ Definitions used everywhere (bot answers and formulas agree):
 | `apps-script/Budget.gs` | Budgets and warnings |
 | `apps-script/Commands.gs` | Slash commands and `/help` text |
 | `apps-script/Gemini.gs` / `Prompt.gs` | Gemini call (structured JSON, retries) and the parsing prompt |
+| `apps-script/Reports.gs` | Scheduled daily/weekly recaps, spending alert, monthly backup |
 | `apps-script/Persona.gs` | Emoji and robot lines |
 | `apps-script/Telegram.gs` | Bot API helpers; replies stay in the topic |
 | `apps-script/Setup.gs` | `setup()`, webhook helpers, `checkConfig()` |
@@ -148,6 +157,8 @@ Functions to run from the Apps Script editor:
 | `runExamples()` | After prompt changes. ~2.5 min, uses ~26 Gemini requests, writes nothing. |
 | `checkConfig()` | When the bot is silent. Prints every setting check without showing secrets. |
 | `setWebhook()` | Point Telegram at the relay (`RELAY_URL`) and drop queued updates. |
+| `installSchedules()` | Once, to start the scheduled messages and backup. Safe to re-run. Asks for Drive access (backup). |
+| `dailySummary()` / `weeklySummary()` / `monthlyBackup()` | Run by hand to see a report now. |
 
 ## Setup from scratch
 
@@ -163,7 +174,9 @@ Functions to run from the Apps Script editor:
 7. **Relay:** on a free Cloudflare account, create a Worker, paste `relay/worker.js`, add the two Worker secrets,
    and put the Worker URL in `RELAY_URL`.
 8. **Connect:** run `setWebhook()`, then `checkConfig()`. Every check should be true and the last error "none".
-9. **Ids:** send `/whereami` in the Finance topic and set `ALLOWED_USER_ID`, `ALLOWED_CHAT_ID`, `FINANCE_TOPIC_ID`.
+9. **Ids:** send `/whereami` in the Finance topic and set `ALLOWED_USER_ID`, `ALLOWED_CHAT_ID` (group id first:
+   scheduled reports go to the first id), `FINANCE_TOPIC_ID`.
+10. **Schedules:** run `installSchedules()`.
 ## Troubleshooting
 
 | Symptom | Check |

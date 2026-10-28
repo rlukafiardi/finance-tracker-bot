@@ -440,8 +440,28 @@ function periodRange_(period) {
   return null;
 }
 
+// Totals for a set of rows, shared by questions and scheduled reports so both always agree.
+// Saving = saving-type rows plus net transfers into tabungan accounts; other transfers only move money around.
+function sumRows_(rows, ctx) {
+  const kindOf = {};
+  ctx.accounts.forEach(function (a) { kindOf[a.name.toLowerCase()] = a.kind; });
+  const isTabungan = function (name) { return kindOf[String(name).toLowerCase()] === 'tabungan'; };
+
+  const sum = { expense: 0, income: 0, saving: 0, byCat: {} };
+  rows.forEach(function (r) {
+    if (r.type === 'transfer') {
+      if (isTabungan(r.to_account) && !isTabungan(r.account)) sum.saving += r.amount;
+      if (isTabungan(r.account) && !isTabungan(r.to_account)) sum.saving -= r.amount;
+      return;
+    }
+    if (sum[r.type] === undefined) return;
+    sum[r.type] += r.amount;
+    if (r.type === 'expense') sum.byCat[r.category] = (sum.byCat[r.category] || 0) + r.amount;
+  });
+  return sum;
+}
+
 // Savings rate = (income - expense) / income. Balance (sisa kas) = income - expense - saving.
-// "Saving" = saving-type rows plus net transfers into tabungan accounts; other transfers only move money around.
 // No period means this month; "sekarang"/"total"/"selama ini" arrive as period "all".
 function answerQuery_(q, ctx) {
   if (!q) return 'Pertanyaan tidak jelas. Contoh: "pengeluaran minggu ini?".';
@@ -451,27 +471,13 @@ function answerQuery_(q, ctx) {
   const range = periodRange_(q.period || 'month');
   if (!range) return 'Periode itu belum didukung 🤖 Coba: hari ini, minggu ini, bulan ini, atau sampai sekarang.';
 
-  const kindOf = {};
-  ctx.accounts.forEach(function (a) { kindOf[a.name.toLowerCase()] = a.kind; });
-  const isTabungan = function (name) { return kindOf[String(name).toLowerCase()] === 'tabungan'; };
-
   let rows = readTransactions_().filter(function (r) { return r.date >= range.from && r.date <= range.to; });
   if (q.category) {
     rows = rows.filter(function (r) { return r.category.toLowerCase() === String(q.category).toLowerCase(); });
   }
 
-  const sum = { expense: 0, income: 0, saving: 0 };
-  const byCat = {};
-  rows.forEach(function (r) {
-    if (r.type === 'transfer') {
-      if (isTabungan(r.to_account) && !isTabungan(r.account)) sum.saving += r.amount;
-      if (isTabungan(r.account) && !isTabungan(r.to_account)) sum.saving -= r.amount;
-      return;
-    }
-    if (sum[r.type] === undefined) return;
-    sum[r.type] += r.amount;
-    if (r.type === 'expense') byCat[r.category] = (byCat[r.category] || 0) + r.amount;
-  });
+  const sum = sumRows_(rows, ctx);
+  const byCat = sum.byCat;
 
   const label = range.label + (q.category ? ' (' + q.category + ')' : '');
   switch (q.metric) {
