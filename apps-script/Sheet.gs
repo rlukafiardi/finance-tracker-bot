@@ -110,6 +110,39 @@ function setAccountKind_(name, kind) {
   setAccountCell_(name, 4, kind);
 }
 
+// Transactions whose account or to_account is `name` (any case, like matchAccount_).
+function countAccountRows_(name) {
+  const key = name.toLowerCase();
+  return readTransactions_().filter(function (r) {
+    return r.account.toLowerCase() === key || r.to_account.toLowerCase() === key;
+  }).length;
+}
+
+// Renames the accounts row and every transaction that uses the old name; returns how many transactions changed.
+// The current_balance formulas point at the row's own cell, so they follow the new name.
+function renameAccount_(from, to) {
+  setAccountCell_(from, 1, to);
+  const sh = sheet_('transactions');
+  const last = sh.getLastRow();
+  if (last < 2) return 0;
+  const key = from.toLowerCase();
+  const touched = new Set();
+  [6, 11].forEach(function (col) {
+    const range = sh.getRange(2, col, last - 1, 1);
+    const values = range.getValues();
+    let changed = false;
+    values.forEach(function (v, i) {
+      if (String(v[0]).trim().toLowerCase() === key) {
+        v[0] = to;
+        touched.add(i);
+        changed = true;
+      }
+    });
+    if (changed) range.setValues(values);
+  });
+  return touched.size;
+}
+
 // Returns { tx, newAccounts } with a cleaned transaction, or { error } with a reason.
 // newAccounts lists account names that are not in ctx.accounts yet.
 function normalizeTx_(tx, ctx) {
@@ -229,11 +262,71 @@ function prepareLog_(txs, raw, ctx, hint) {
     clean.push(n.tx);
     collectNewAccounts_(n.newAccounts, ctx, created);
   }
-  return {
-    action: { kind: 'log', txs: clean, raw: raw, newAccounts: created },
-    preview: '📝 Catat ' + (clean.length > 1 ? clean.length + ' transaksi' : 'ini') + '?\n\n' +
-      clean.map(describe_).join('\n') + newAccountsNote_(created) + savingTip_(clean),
-  };
+  const action = { kind: 'log', txs: clean, raw: raw, newAccounts: created, newCategory: null };
+  return { action: action, preview: logPreview_(action) };
+}
+
+function newCategoryNote_(c) {
+  return c ? '\n\n🆕 Kategori baru: ' + c.label + ' (' + c.type + ')' : '';
+}
+
+function logPreview_(a) {
+  return '📝 Catat ' + (a.txs.length > 1 ? a.txs.length + ' transaksi' : 'ini') + '?\n\n' +
+    a.txs.map(describe_).join('\n') + newAccountsNote_(a.newAccounts) + newCategoryNote_(a.newCategory) + savingTip_(a.txs);
+}
+
+// The category a correction asks for, as { label } (the existing spelling when it exists, else capitalised),
+// { error }, or {} when it asks for none or the transaction is a transfer (no categories).
+function chosenCategory_(corr, type, ctx) {
+  if (!corr || !corr.category || type === 'transfer') return {};
+  const name = String(corr.category).trim();
+  const nameError = categoryNameError_(name);
+  if (nameError) return { error: nameError };
+  const label = name.charAt(0).toUpperCase() + name.slice(1);
+  const known = (ctx.cats[type] || []).find(function (c) { return c.toLowerCase() === label.toLowerCase(); });
+  return { label: known || label };
+}
+
+// { type, label } when the transaction's category does not exist yet (created when the user confirms), else null.
+function newCategoryFor_(tx, ctx) {
+  return tx.type !== 'transfer' && (ctx.cats[tx.type] || []).indexOf(tx.category) < 0
+    ? { type: tx.type, label: tx.category } : null;
+}
+
+// "ubah jadi parkir motor" while a log preview is still waiting edits the last transaction of that preview, so
+// there is no need to cancel first. A category that does not exist yet is created when the log is confirmed.
+function prepareEditPending_(pending, corr, ctx) {
+  const a = JSON.parse(JSON.stringify(pending.action));
+  const next = Object.assign({}, a.txs[a.txs.length - 1]);
+  let changed = false;
+  ['amount', 'type', 'date', 'account'].forEach(function (k) {
+    if (corr && corr[k] !== null && corr[k] !== undefined && corr[k] !== '') {
+      next[k] = corr[k];
+      changed = true;
+    }
+  });
+
+  const chosen = chosenCategory_(corr, next.type, ctx);
+  if (chosen.error) return { reply: chosen.error };
+  if (chosen.label) changed = true;
+  const label = chosen.label;
+  if (!changed) return { reply: 'Tidak ada yang diubah 🤔 Contoh: "ganti kategori jadi parkir motor".' };
+
+  // normalizeTx_ falls back to Lainnya for an unknown category, so the chosen label is put back afterwards.
+  const n = normalizeTx_(next, ctx);
+  if (n.error) return { reply: '🤖 Koreksi gagal (' + n.error + ').' };
+  if (label && n.tx.type !== 'transfer') n.tx.category = label;
+  a.txs[a.txs.length - 1] = n.tx;
+
+  a.newCategory = newCategoryFor_(a.txs[a.txs.length - 1], ctx);
+  a.newAccounts = [];
+  a.txs.forEach(function (t) {
+    [t.account, t.to_account].forEach(function (name) {
+      if (name && !matchAccount_(name, ctx.accounts) &&
+          !a.newAccounts.some(function (x) { return x.toLowerCase() === name.toLowerCase(); })) a.newAccounts.push(name);
+    });
+  });
+  return { action: a, preview: logPreview_(a) };
 }
 
 // A plain "nabung 2jt" leaves the tracked accounts; naming the savings account keeps the money visible.
@@ -244,6 +337,7 @@ function savingTip_(txs) {
 
 function commitLog_(a) {
   createAccounts_(a.newAccounts);
+  if (a.newCategory) commitCategory_(a.newCategory);
   const now = new Date();
   const rows = a.txs.map(function (t) {
     t.id = Utilities.getUuid().slice(0, 8); // kept on the action so feeButtons_ can point at the saved transfer
@@ -270,22 +364,27 @@ function prepareCorrect_(corr, ctx) {
   const before = rowToTx_(sh.getRange(r, 1, 1, SHEET_HEADERS.length).getValues()[0]);
   const next = Object.assign({}, before);
   let changed = false;
-  ['amount', 'category', 'type', 'date', 'account'].forEach(function (k) {
+  ['amount', 'type', 'date', 'account'].forEach(function (k) {
     if (corr && corr[k] !== null && corr[k] !== undefined && corr[k] !== '') {
       next[k] = corr[k];
       changed = true;
     }
   });
+  const chosen = chosenCategory_(corr, next.type, ctx);
+  if (chosen.error) return { reply: chosen.error };
+  if (chosen.label) changed = true;
   if (!changed) return { reply: 'Tidak ada yang diubah 🤔 Contoh: "ubah yang tadi jadi 40rb".' };
 
   const n = normalizeTx_(next, ctx);
   if (n.error) return { reply: '🤖 Koreksi gagal (' + n.error + ').' };
+  if (chosen.label) n.tx.category = chosen.label;
+  const newCategory = newCategoryFor_(n.tx, ctx);
   const created = [];
   collectNewAccounts_(n.newAccounts, ctx, created);
   return {
-    action: { kind: 'correct', id: before.id, tx: n.tx, newAccounts: created },
+    action: { kind: 'correct', id: before.id, tx: n.tx, newAccounts: created, newCategory: newCategory },
     preview: '✏️ Ubah ' + (id ? 'transaksi #' + id : 'transaksi terakhir') + '?\n\nSebelum:\n' + describe_(before) +
-      '\n\nSesudah:\n' + describe_(n.tx) + newAccountsNote_(created),
+      '\n\nSesudah:\n' + describe_(n.tx) + newAccountsNote_(created) + newCategoryNote_(newCategory),
   };
 }
 
@@ -294,6 +393,7 @@ function commitCorrect_(a) {
   const r = findRowById_(sh, a.id);
   if (r < 0) return '⚠️ Transaksinya sudah tidak ada, tidak ada yang diubah.';
   createAccounts_(a.newAccounts);
+  if (a.newCategory) commitCategory_(a.newCategory);
   const t = a.tx;
   sh.getRange(r, 2, 1, 7).setValues([[
     Utilities.parseDate(t.date, TZ, 'yyyy-MM-dd'), t.amount, t.type, t.category, t.account, t.merchant, t.note,

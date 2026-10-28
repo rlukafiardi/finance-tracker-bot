@@ -115,6 +115,13 @@ and the dashboard answers "how much did I spend / save this month".
   created_at so "hapus yang tadi" removes both; a double tap is ignored. 6,5rb (online transfer) is my assumption,
   unverified against the bank. Dashboard card sparklines show only from the second month.
 
+- 2026-10-28: Account rename (my request): chat intent account with account_setup.rename_to, or `/akun <lama> jadi <baru>`.
+  Shares prepareRename_ (✅/❌ preview with the number of affected transactions); the commit rewrites the accounts row
+  and `account`/`to_account` of all transactions, so balances follow without touching the formulas.
+- 2026-10-28: Category fixes without cancelling (my request): while a log preview waits, "ganti kategori jadi X" edits
+  the last transaction of that preview (prepareEditPending_), and a saved row can be corrected the same way. A category
+  that does not exist yet is created when I confirm (action.newCategory), instead of falling back to Lainnya.
+
 ## Status
 - Works (2026-10-28, tested by me end to end): live in my private Telegram group,
   topic 💰 Finance (id 2), group only (ALLOWED_CHAT_ID has just the group; private chat answers /whereami only).

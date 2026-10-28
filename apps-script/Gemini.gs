@@ -57,6 +57,7 @@ const RESPONSE_SCHEMA = {
         name: { type: 'STRING' },
         opening: { type: 'INTEGER', nullable: true },
         kind: { type: 'STRING', enum: ['bank', 'ewallet', 'cash', 'tabungan', 'investasi', 'lainnya'], nullable: true },
+        rename_to: { type: 'STRING', nullable: true },
       },
     },
     budget_setup: {

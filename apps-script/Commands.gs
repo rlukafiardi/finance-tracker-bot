@@ -14,7 +14,8 @@ const HELP_TEXT = [
   '› transfer bca ke bni 1jt admin 2,5rb',
   '',
   '🛠 PERBAIKI',
-  '› ubah yang tadi jadi 40rb',
+  '› ubah yang tadi jadi 40rb · ganti kategori jadi parkir motor',
+  '  (boleh langsung saat konfirmasi masih menunggu, tidak perlu batal dulu)',
   '› ubah a1b2c3d4 jadi 40rb (id dari "5 transaksi terakhir")',
   '› hapus yang tadi',
   '› hapus transaksi a1b2c3d4',
@@ -30,6 +31,7 @@ const HELP_TEXT = [
   '⚙️ ATUR',
   '› tambah akun Bibit 5jt investasi',
   '› saldo awal BCA 10jt · BCA itu tabungan',
+  '› ganti nama akun BCA jadi BCA Utama',
   '› budget makan 1,5jt · hapus budget makan · status budget?',
   '› kategori apa aja? · tambah kategori Hobi',
   '',
@@ -131,10 +133,16 @@ function categoryList_(ctx) {
   return '🏷️ Kategori:\n\n' + TYPES.map(function (t) { return t + ': ' + (ctx.cats[t].join(', ') || '-'); }).join('\n');
 }
 
-// Shared by /kategori and chat ("tambah kategori Hobi"); chat without a type adds an expense category.
-function prepareCategory_(type, name, ctx) {
+function categoryNameError_(name) {
   if (name.length > 30) return 'Nama kategori terlalu panjang (maks 30 karakter).';
   if (/^[=+\-@]/.test(name)) return 'Nama kategori tidak boleh diawali = + - atau @.';
+  return '';
+}
+
+// Shared by /kategori and chat ("tambah kategori Hobi"); chat without a type adds an expense category.
+function prepareCategory_(type, name, ctx) {
+  const nameError = categoryNameError_(name);
+  if (nameError) return nameError;
 
   const label = name.charAt(0).toUpperCase() + name.slice(1);
   const exists = ctx.cats[type].some(function (c) { return c.toLowerCase() === label.toLowerCase(); });
@@ -154,10 +162,14 @@ function commitCategory_(a) {
 // /akun BNI 1,5jt            -> add the account (kind guessed from the name), or set its opening balance
 // /akun Bibit 5jt investasi  -> same, with an explicit kind
 // /akun Bibit investasi      -> change only the kind of an existing account
+// /akun BCA jadi BCA Utama   -> rename the account (also "->")
 function accountCommand_(args, ctx) {
   if (!args.length) {
-    return 'Format: /akun <nama> [saldo awal] [jenis], mis. /akun Bibit 5jt investasi\nJenis: ' + ACCOUNT_KINDS.join(', ');
+    return 'Format: /akun <nama> [saldo awal] [jenis], mis. /akun Bibit 5jt investasi\n' +
+      'Ganti nama: /akun <lama> jadi <baru>\nJenis: ' + ACCOUNT_KINDS.join(', ');
   }
+  const rename = args.join(' ').split(/\s+(?:->|jadi)\s+/i);
+  if (rename.length === 2) return prepareRename_(rename[0].trim(), rename[1].trim(), ctx);
   const rest = args.slice();
   const jenis = rest.length >= 2 ? parseKind_(rest[rest.length - 1]) : null;
   if (jenis) rest.pop();
@@ -204,4 +216,26 @@ function commitAccount_(a) {
   const kind = a.jenis || guessKind_(a.name);
   addAccount_(a.name, a.opening || 0, kind);
   return '✅ Akun ' + a.name + ' (' + KIND_LABEL[kind] + ') siap, saldo awal ' + rupiah_(a.opening || 0);
+}
+
+// Shared by /akun <lama> jadi <baru> and chat ("ganti nama akun BCA jadi BCA Utama").
+function prepareRename_(oldName, newName, ctx) {
+  const known = matchAccount_(oldName, ctx.accounts);
+  if (!known) return 'Akun "' + oldName + '" tidak ada. Coba /saldo untuk daftar akun.';
+  if (!newName) return 'Nama barunya apa? Contoh: ganti nama akun BCA jadi BCA Utama';
+  if (newName.length > 30) return 'Nama akun terlalu panjang (maks 30 karakter).';
+  if (/^[=+\-@]/.test(newName)) return 'Nama akun tidak boleh diawali = + - atau @.';
+  const clash = matchAccount_(newName, ctx.accounts);
+  if (clash && clash !== known) return 'Sudah ada akun ' + clash + '. Pilih nama lain.';
+  if (newName === known) return 'Namanya sudah ' + known + ' 👍';
+  return {
+    action: { kind: 'rename', from: known, to: newName },
+    preview: '🏦 Ganti nama akun ' + known + ' jadi ' + newName + '?\n' +
+      countAccountRows_(known) + ' transaksi ikut diperbarui.',
+  };
+}
+
+function commitRename_(a) {
+  const n = renameAccount_(a.from, a.to);
+  return '✅ Akun ' + a.from + ' sekarang bernama ' + a.to + ' 🏦 (' + n + ' transaksi diperbarui)';
 }
