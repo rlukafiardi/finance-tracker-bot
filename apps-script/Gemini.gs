@@ -47,6 +47,7 @@ const RESPONSE_SCHEMA = {
       },
     },
     reply_hint: { type: 'STRING', nullable: true },
+    quip: { type: 'STRING', nullable: true },
   },
   required: ['intent', 'transactions'],
 };

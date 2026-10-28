@@ -38,6 +38,13 @@ and the dashboard answers "how much did I spend / save this month".
   behind it. The relay answers 200 and checks Telegram's secret_token header (so WEBHOOK_SECRET must be [A-Za-z0-9_-]).
 - 2026-10-28: Chose polling instead (`Poll.gs`, time trigger every minute, getUpdates): no Cloudflare account,
   all inside Google, replies within ~1 min. Relay kept in the repo as the option for instant replies.
+- 2026-10-28: Every write (log, correct, delete, /akun, /kategori, /budget) waits for confirmation: preview with
+  ✅/❌ inline buttons, or typed "ya"/"batal". One pending action in the PENDING script property, 15-min expiry.
+  Code split into prepare*_ (validate + preview) and commit*_ (write); runAction_ in Confirm.gs dispatches.
+- 2026-10-28: Personality: Gemini returns a `quip` (playful, no numbers) in the same call; amounts always come from
+  code. Category emoji and canned robot lines in Persona.gs for non-Gemini replies.
+- 2026-10-28: Polling burst mode: after a message, pollUpdates long-polls for BURST_SECONDS (default 120) so
+  confirmations and follow-ups are instant. Free trigger runtime is ~90 min/day (unverified), keep bursts short.
 - 2026-10-28: Delete ("hapus yang tadi", /hapus) removes all rows of the latest message (same created_at), so a
   multi-item message undoes as one unit; /hapus <id> removes one row. Budgets are monthly per expense category
   (`budgets` tab); replies warn at >= 80% on every expense in that category, not only when crossing.

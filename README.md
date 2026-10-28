@@ -74,4 +74,7 @@ Never put tokens in the code or in git; they live only in Script Properties.
   `/kategori` (list), `/kategori expense Hobi` (add category), `/budget` (status), `/budget makan 1,5jt`
   (monthly limit, 0 removes it), `/terakhir [n]` (latest entries with id), `/hapus [id]` (latest message, or one row by id)
 - Budgets: after an expense, the reply warns when its category has used 80% or more of this month's budget.
+- Confirmation: anything that changes data shows a preview with ✅ Simpan / ❌ Batal buttons (or type "ya"/"batal").
+- Polling burst: after a message the bot stays awake for `BURST_SECONDS` (optional script property, default 120),
+  so button taps and follow-ups are answered in a second or two.
 - Optional script property `DEFAULT_ACCOUNT`: used when a message names no account.
