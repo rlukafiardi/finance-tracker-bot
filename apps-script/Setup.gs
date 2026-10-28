@@ -2,7 +2,8 @@
 
 const DEFAULT_CATEGORIES = [
   ['expense', 'Makan'], ['expense', 'Transport'], ['expense', 'Belanja'], ['expense', 'Tagihan'],
-  ['expense', 'Hiburan'], ['expense', 'Kesehatan'], ['expense', 'Pendidikan'], ['expense', 'Lainnya'],
+  ['expense', 'Hiburan'], ['expense', 'Kesehatan'], ['expense', 'Pendidikan'], ['expense', 'Biaya Admin'],
+  ['expense', 'Lainnya'],
   ['income', 'Gaji'], ['income', 'Bonus'], ['income', 'Freelance'], ['income', 'Lainnya'],
   ['saving', 'Tabungan'], ['saving', 'Dana Darurat'], ['saving', 'Investasi'], ['saving', 'Lainnya'],
 ];

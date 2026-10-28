@@ -4,7 +4,7 @@
 const CATEGORY_EMOJI = {
   makan: '🍜', transport: '🚗', belanja: '🛍️', tagihan: '🧾', hiburan: '🎬', kesehatan: '💊',
   pendidikan: '📚', gaji: '💰', bonus: '🎁', freelance: '💻', tabungan: '🏦', 'dana darurat': '🛟',
-  investasi: '📈', transfer: '🔁',
+  investasi: '📈', transfer: '🔁', 'biaya admin': '🏧',
 };
 const TYPE_EMOJI = { expense: '💸', income: '💰', saving: '🏦', transfer: '🔁' };
 
