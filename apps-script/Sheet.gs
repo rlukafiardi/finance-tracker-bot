@@ -390,7 +390,7 @@ function accountBalances_(ctx) {
   return bal;
 }
 
-// All accounts grouped by kind, one account, or one kind ("berapa tabunganku" -> kind tabungan).
+// All accounts grouped by kind, one account, one kind, or Tabungan ("berapa tabunganku": see tabunganAccounts_).
 function balanceReply_(ctx, onlyAccount, onlyKind) {
   if (!ctx.accounts.length) {
     return 'Belum ada akun 🏦 Tambah dengan /akun BNI 1,5jt, atau sebut akun saat mencatat.';
@@ -403,15 +403,19 @@ function balanceReply_(ctx, onlyAccount, onlyKind) {
     return '🏦 Saldo ' + key + ': ' + rupiah_(bal[key]);
   }
 
+  const tabungan = onlyKind === 'tabungan';
   const groups = {};
-  ctx.accounts.forEach(function (a) {
+  (tabungan ? tabunganAccounts_(ctx) : ctx.accounts).forEach(function (a) {
     const k = ACCOUNT_KINDS.indexOf(a.kind) >= 0 ? a.kind : 'lainnya';
     (groups[k] = groups[k] || []).push(a.name);
   });
-  if (onlyKind && !groups[onlyKind]) {
+  if (tabungan && !Object.keys(groups).length) {
+    return 'Belum ada akun bank atau cash 🪙 Tambah dengan /akun BCA 5jt.';
+  }
+  if (onlyKind && !tabungan && !groups[onlyKind]) {
     return 'Belum ada akun jenis ' + onlyKind + ' 🏷️ Tandai dengan /akun <nama> ' + onlyKind + ', mis. /akun Bibit investasi';
   }
-  const kinds = onlyKind ? [onlyKind] : ACCOUNT_KINDS.filter(function (k) { return groups[k]; });
+  const kinds = onlyKind && !tabungan ? [onlyKind] : ACCOUNT_KINDS.filter(function (k) { return groups[k]; });
 
   let total = 0;
   const blocks = kinds.map(function (k) {
@@ -421,8 +425,9 @@ function balanceReply_(ctx, onlyAccount, onlyKind) {
     return KIND_LABEL[k] + ': ' + rupiah_(sub) + '\n' +
       names.map(function (n) { return '└ ' + n + ' ' + rupiah_(bal[n]); }).join('\n');
   });
-  return (onlyKind ? KIND_LABEL[onlyKind] + ' kamu sekarang' : '💰 Saldo akun') + ':\n\n' + blocks.join('\n\n') +
-    (kinds.length > 1 ? '\n\n💰 Total: ' + rupiah_(total) : '') + '\n(saldo awal + transaksi yang tercatat)';
+  const title = tabungan ? '🪙 Tabungan kamu sekarang' : onlyKind ? KIND_LABEL[onlyKind] + ' kamu sekarang' : '💰 Saldo akun';
+  return title + ':\n\n' + blocks.join('\n\n') + (kinds.length > 1 ? '\n\n💰 Total: ' + rupiah_(total) : '') +
+    '\n(saldo awal + transaksi yang tercatat' + (tabungan ? ', tanpa investasi dan e-wallet' : '') + ')';
 }
 
 // Weeks run Monday to Sunday.
@@ -441,22 +446,12 @@ function periodRange_(period) {
 }
 
 // Totals for a set of rows, shared by questions and scheduled reports so both always agree.
-// kept ("sisa") = income - expense: what was kept (or overspent) in the period, wherever it sits.
-// saving = money moved to savings: saving-type rows plus net transfers into tabungan accounts; other transfers
-// only move money around.
-function sumRows_(rows, ctx) {
-  const kindOf = {};
-  ctx.accounts.forEach(function (a) { kindOf[a.name.toLowerCase()] = a.kind; });
-  const isTabungan = function (name) { return kindOf[String(name).toLowerCase()] === 'tabungan'; };
-
-  const sum = { expense: 0, income: 0, saving: 0, byCat: {} };
+// kept ("sisa") = income - expense: what was kept (or overspent) in the period. Only income and expense rows count;
+// transfers and saving-type rows just move money around.
+function sumRows_(rows) {
+  const sum = { expense: 0, income: 0, byCat: {} };
   rows.forEach(function (r) {
-    if (r.type === 'transfer') {
-      if (isTabungan(r.to_account) && !isTabungan(r.account)) sum.saving += r.amount;
-      if (isTabungan(r.account) && !isTabungan(r.to_account)) sum.saving -= r.amount;
-      return;
-    }
-    if (sum[r.type] === undefined) return;
+    if (r.type !== 'expense' && r.type !== 'income') return;
     sum[r.type] += r.amount;
     if (r.type === 'expense') sum.byCat[r.category] = (sum.byCat[r.category] || 0) + r.amount;
   });
@@ -464,12 +459,19 @@ function sumRows_(rows, ctx) {
   return sum;
 }
 
-// Current balance of tabungan-kind accounts (what "berapa tabunganku" answers), or null when there are none.
+// "Tabungan" = the money I hold: every account except investasi and e-wallets.
+const NOT_TABUNGAN = ['investasi', 'ewallet'];
+
+function tabunganAccounts_(ctx) {
+  return ctx.accounts.filter(function (a) { return NOT_TABUNGAN.indexOf(a.kind) < 0; });
+}
+
+// Current Tabungan total, or null when there are no such accounts.
 function tabunganTotal_(ctx) {
-  const names = ctx.accounts.filter(function (a) { return a.kind === 'tabungan'; }).map(function (a) { return a.name; });
-  if (!names.length) return null;
+  const accounts = tabunganAccounts_(ctx);
+  if (!accounts.length) return null;
   const bal = accountBalances_(ctx);
-  return names.reduce(function (t, n) { return t + bal[n]; }, 0);
+  return accounts.reduce(function (t, a) { return t + bal[a.name]; }, 0);
 }
 
 // Savings rate = (income - expense) / income. "Saving" and "balance" questions both answer with sisa
@@ -488,7 +490,7 @@ function answerQuery_(q, ctx) {
     rows = rows.filter(function (r) { return r.category.toLowerCase() === String(q.category).toLowerCase(); });
   }
 
-  const sum = sumRows_(rows, ctx);
+  const sum = sumRows_(rows);
   const byCat = sum.byCat;
 
   const label = range.label + (q.category ? ' (' + q.category + ')' : '');
@@ -498,8 +500,7 @@ function answerQuery_(q, ctx) {
     case 'saving':
     case 'balance':
       return 'Sisa ' + label + ': ' + rupiah_(sum.kept) +
-        '\n(pemasukan ' + rupiah_(sum.income) + ' − pengeluaran ' + rupiah_(sum.expense) + ')' +
-        (sum.saving ? '\n└ dipindah ke tabungan: ' + rupiah_(sum.saving) : '');
+        '\n(pemasukan ' + rupiah_(sum.income) + ' − pengeluaran ' + rupiah_(sum.expense) + ')';
     case 'savings_rate':
       if (sum.income <= 0) return 'Belum ada pemasukan ' + label + ', savings rate belum bisa dihitung.';
       return 'Savings rate ' + label + ': ' + ((sum.income - sum.expense) / sum.income * 100).toFixed(1) + '%' +

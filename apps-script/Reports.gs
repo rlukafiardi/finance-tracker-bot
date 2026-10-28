@@ -42,14 +42,14 @@ function prevMonth_(range) {
 
 // Sums for up to n periods before `range`. Periods that ended before tracking started are skipped, so they do not
 // count as zero spending and drag the average down.
-function pastPeriods_(rows, ctx, range, n, previous) {
+function pastPeriods_(rows, range, n, previous) {
   const first = rows.reduce(function (m, r) { return r.date < m ? r.date : m; }, range.from);
   const past = [];
   let r = range;
   for (let i = 0; i < n; i++) {
     r = previous(r);
     if (r.to < first) break;
-    past.push(sumRows_(between_(rows, r), ctx));
+    past.push(sumRows_(between_(rows, r)));
   }
   return past;
 }
@@ -63,9 +63,7 @@ function topCats_(byCat, n) {
 function totalsLines_(s, topN) {
   const lines = ['💸 Pengeluaran: ' + rupiah_(s.expense)];
   if (s.expense) lines.push('└ ' + topCats_(s.byCat, topN));
-  lines.push('💰 Pemasukan: ' + rupiah_(s.income), '⚖️ Sisa: ' + rupiah_(s.kept));
-  if (s.saving) lines.push('└ dipindah ke tabungan: ' + rupiah_(s.saving));
-  return lines;
+  lines.push('💰 Pemasukan: ' + rupiah_(s.income), '⚖️ Sisa: ' + rupiah_(s.kept));  return lines;
 }
 
 // The current tabungan balance as a one-line array, empty when there are no tabungan accounts.
@@ -78,10 +76,10 @@ function weeklySummary() {
   const ctx = { cats: getCategories_(), accounts: getAccounts_() };
   const all = readTransactions_();
   const week = prevWeek_(periodRange_('week'));
-  const s = sumRows_(between_(all, week), ctx);
+  const s = sumRows_(between_(all, week));
 
   const lines = ['📅 Rekap minggu lalu (' + week.from + ' s/d ' + week.to + ')', '']
-    .concat(totalsLines_(s, 3), tabunganLine_(ctx), ['', spendingAlert_(s, pastPeriods_(all, ctx, week, 4, prevWeek_), 'minggu')]);
+    .concat(totalsLines_(s, 3), tabunganLine_(ctx), ['', spendingAlert_(s, pastPeriods_(all, week, 4, prevWeek_), 'minggu')]);
   if (getBudgets_().length) lines.push('', '🎯 ' + budgetOverview_());
   sendMessage_(reportTarget_(), lines.join('\n'));
 }
@@ -91,12 +89,12 @@ function monthlySummary() {
   const ctx = { cats: getCategories_(), accounts: getAccounts_() };
   const all = readTransactions_();
   const month = prevMonth_({ from: todayStr_().slice(0, 8) + '01' });
-  const s = sumRows_(between_(all, month), ctx);
+  const s = sumRows_(between_(all, month));
   const title = MONTHS_ID[Number(month.from.slice(5, 7)) - 1] + ' ' + month.from.slice(0, 4);
 
   const lines = ['📆 Rekap bulan ' + title, ''].concat(totalsLines_(s, 5), tabunganLine_(ctx));
   if (s.income > 0) lines.push('📈 Savings rate: ' + ((s.income - s.expense) / s.income * 100).toFixed(1) + '%');
-  lines.push('', spendingAlert_(s, pastPeriods_(all, ctx, month, 3, prevMonth_), 'bulan'));
+  lines.push('', spendingAlert_(s, pastPeriods_(all, month, 3, prevMonth_), 'bulan'));
 
   const budgets = getBudgets_();
   if (budgets.length) {

@@ -45,7 +45,7 @@ Telegram with 200 itself and forwards the update to Apps Script.
 | `gaji 15jt masuk bca` | Income to BCA |
 | `tap lrt 17k pake gopay` | Expense paid from GoPay |
 | `top up gopay pake bni 200k` | Transfer BNI → GoPay (not spending) |
-| `nabung 2jt dari bca ke bibit` | Transfer into a savings or investment account |
+| `nabung 2jt dari bca ke bibit` | Transfer between accounts (here into an investment account, which leaves Tabungan) |
 | `kopi 25rb, parkir 5rb` | Two transactions from one message |
 | `tambah akun Bibit 5jt investasi` / `saldo awal BCA 10jt` / `Bibit itu investasi` | Add an account, or set its opening balance or kind (same as `/akun`) |
 | `budget makan 1,5jt` / `hapus budget makan` / `status budget?` | Set, remove, show monthly budgets (same as `/budget`) |
@@ -109,12 +109,13 @@ hand. Don't edit the tab itself: it is overwritten.
 Definitions used everywhere (bot answers and formulas agree):
 
 - **Account balance** = opening balance + income − expense − saving − transfers out + transfers in.
-- **Tabungan** = balance of accounts of kind `tabungan`. Investasi is reported separately.
-- **Tabungan** = current balance of accounts of kind `tabungan` (opening balance included). Investasi is separate.
-- **Sisa** = income − expense in a period: what was kept, or overspent, wherever it sits. A month with spending but
-  no income yet has a negative sisa. Questions like "ditabung bulan ini?" or "sisa kas?" answer with it.
-- **Dipindah ke tabungan** = `saving` rows + net transfers into tabungan accounts, shown as a second line when non-zero.
-- **Savings rate** = (income − expense) / income. Transfers are never spending or income.
+- **Tabungan** = the money I hold now: the balance of every account except investasi and e-wallets (banks, cash,
+  anything else), opening balances included. There is no savings quota to set aside; it matches the banking apps.
+  Investasi is reported separately ("investasiku?").
+- **Sisa** = income − expense in a period: what was kept, or overspent. A month with spending but no income yet
+  (for example because the salary arrived before the bot was set up) has a negative sisa.
+  Questions like "ditabung bulan ini?" or "sisa kas?" answer with it.
+- **Savings rate** = (income − expense) / income. Transfers and `saving` rows are never spending or income.
 - A plain `nabung 2jt` (no destination) is type `saving`: it leaves the tracked accounts. Name the account to keep it visible.
 
 ## Repository layout

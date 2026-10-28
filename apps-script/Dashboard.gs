@@ -18,12 +18,12 @@ function monthLabel_(dateStr) {
 // Pure data assembly (no Sheet calls), so it can be checked outside Apps Script.
 function dashboardData_(all, ctx, today, weekStart, budgets) {
   const month = { from: today.slice(0, 8) + '01', to: today };
-  const cur = sumRows_(between_(all, month), ctx);
+  const cur = sumRows_(between_(all, month));
 
   const months = [month];
   while (months.length < 12) months.unshift(prevMonth_(months[0]));
   const trend = months.map(function (m) {
-    const s = sumRows_(between_(all, m), ctx);
+    const s = sumRows_(between_(all, m));
     return [monthLabel_(m.from), s.income, s.expense, s.kept, s.income > 0 ? (s.income - s.expense) / s.income : ''];
   });
 
@@ -38,7 +38,7 @@ function dashboardData_(all, ctx, today, weekStart, budgets) {
 
   const weeks = [{ from: weekStart, to: today }];
   while (weeks.length < 12) weeks.unshift(prevWeek_(weeks[0]));
-  const weekly = weeks.map(function (w) { return [w.from, sumRows_(between_(all, w), ctx).expense]; });
+  const weekly = weeks.map(function (w) { return [w.from, sumRows_(between_(all, w)).expense]; });
 
   const bal = accountBalances_(ctx);
   const accounts = ctx.accounts.slice().sort(function (a, b) {
@@ -53,7 +53,7 @@ function dashboardData_(all, ctx, today, weekStart, budgets) {
       ['Pemasukan bulan ini', cur.income, '#,##0'],
       ['Sisa bulan ini', cur.kept, '#,##0'],
       ['Savings rate bulan ini', cur.income > 0 ? (cur.income - cur.expense) / cur.income : '-', '0.0%'],
-      ['Tabungan (akun tabungan)', tabungan === null ? '-' : tabungan, '#,##0'],
+      ['Tabungan sekarang', tabungan === null ? '-' : tabungan, '#,##0'],
       ['Total saldo akun', total, '#,##0'],
     ],
     trend: trend, cats: cats, weekly: weekly, accounts: accounts, total: total,
