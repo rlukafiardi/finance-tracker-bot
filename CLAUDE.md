@@ -135,6 +135,12 @@ and the dashboard answers "how much did I spend / save this month".
   another pending preview. Batch cap 12 because the PENDING script property is limited to 9 KB. Duplicate = same
   type, account(s) and amount within ±1 day of an existing row. Edit before approving by number (`correction.item`).
   Email text is never stored (`raw_message` = "email").
+- 2026-10-28: Audit of 90 days of mail (105 checked): 90 parsed, the rest were other templates, all reported and none
+  wrongly parsed. Added parsers for BNI Virtual Account, PLN token, `Transfer berhasil!`, `Kode tarik tunai` and BCA
+  transfers. A transfer is "mine" when the recipient name equals the account holder's name; otherwise an expense with
+  category Lainnya set by the parser, so third-party names never reach Gemini. DANA top-ups have no fee; ShopeePay
+  (500) and OVO (1.000) deduct it inside the wallet, so `WALLET_DEDUCTED_FEES` adds it on the wallet account.
+  `auditEmails()` / `dumpFailedSamples()` in Gmail.gs re-check parsers against old mail.
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in my private Telegram group,

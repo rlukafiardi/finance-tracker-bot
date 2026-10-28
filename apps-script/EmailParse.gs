@@ -7,6 +7,15 @@ const EMAIL_MONTHS = {
   nov: 11, des: 12, dec: 12,
 };
 
+// Wallets that take their top-up fee from the balance they receive: the BNI email shows no fee, so it is added as an
+// expense on the wallet account. Keys are the wallet name in lowercase without spaces. Check the amounts in the app.
+const WALLET_DEDUCTED_FEES = { shopeepay: 500, ovo: 1000 };
+
+function walletDeductedFee_(wallet) {
+  const fee = WALLET_DEDUCTED_FEES[wallet.toLowerCase().replace(/\s+/g, '')];
+  return Number.isInteger(fee) ? fee : 0;
+}
+
 function emailLines_(text) {
   return text.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
 }
@@ -32,40 +41,96 @@ function emailTx_(date, amount, type, account, fields) {
   }, fields);
 }
 
-// "Transaksi berhasil!" (QRIS payment) and "Top-up berhasil!" (e-wallet top up, with its fee as a second row).
+// Amount on a line like "Nominal Rp17.000", "Total Rp203.500,00" or "Biaya admin Rp0"; null when the label is absent.
+function bniAmount_(lines, label) {
+  const m = matchLine_(lines, new RegExp('^' + label + ' Rp\\s?([\\d.]+)(?:,\\d+)?$'));
+  return m ? parseInt(m[1].replace(/\./g, ''), 10) : null;
+}
+
+function lineAfter_(lines, label) {
+  const i = lines.indexOf(label);
+  return i >= 0 && i + 1 < lines.length ? lines[i + 1] : '';
+}
+
+// BNI (wondr) emails; the first line says which kind. Dates come as "23 Oktober 2026" or "09-Okt-2026".
+//   Top-up berhasil!                   e-wallet top-up: transfer to the wallet, plus its fee
+//   Transaksi berhasil!                QRIS, Virtual Account and PLN token payments
+//   Transfer berhasil!                 to my own account (transfer) or to someone else (expense)
+//   Kode tarik tunai siap digunakan!   cash withdrawal (transfer to Cash)
 function parseBniEmail_(text) {
   const lines = emailLines_(text);
-  const date = matchLine_(lines, /^Tanggal (\d{1,2}) (\S+) (\d{4})$/);
-  const nominal = matchLine_(lines, /^Nominal Rp([\d.]+)$/);
-  if (!date || !nominal) return { error: 'tanggal atau nominal tidak ditemukan' };
+  const date = matchLine_(lines, /^Tanggal (\d{1,2})[ -](\S+?)[ -](\d{4})$/);
+  if (!date) return { error: 'tanggal tidak ditemukan' };
   const day = emailDate_(date[1], date[2], date[3]);
   if (!day) return { error: 'bulan "' + date[2] + '" tidak dikenal' };
-  const amount = parseInt(nominal[1].replace(/\./g, ''), 10);
 
-  const recipientAt = lines.indexOf('Penerima');
   const intro = matchLine_(lines, /Kamu baru aja (.+?) dengan detail/);
-  const what = intro ? intro[1] : 'jenis tidak dikenal';
+  const what = (intro ? intro[1] : 'jenis tidak dikenal') + (lineAfter_(lines, 'Tujuan') ? ' / ' + lineAfter_(lines, 'Tujuan') : '');
+  const nominal = bniAmount_(lines, 'Nominal');
+  const total = bniAmount_(lines, 'Total');
+  const recipientAt = lines.indexOf('Penerima');
+  const unsupported = { error: 'belum didukung (' + what + ')' };
 
-  if (/^Top-up berhasil/.test(lines[0]) && /top-up e-Wallet/i.test(what) && recipientAt >= 0) {
+  if (/^Top-up berhasil/.test(lines[0])) {
+    if (!/top-up e-Wallet/i.test(what) || recipientAt < 0 || nominal === null) return unsupported;
     const wallet = (lines[recipientAt + 2] || '').split('•')[0].trim();
     if (!wallet) return { error: 'e-wallet tujuan tidak ditemukan' };
-    const txs = [emailTx_(day, amount, 'transfer', 'BNI', { to_account: wallet, category: 'Transfer', note: 'top-up e-wallet' })];
-    const fee = matchLine_(lines, /^Biaya transaksi Rp([\d.]+)$/);
-    const feeAmount = fee ? parseInt(fee[1].replace(/\./g, ''), 10) : 0;
-    if (feeAmount > 0) {
-      txs.push(emailTx_(day, feeAmount, 'expense', 'BNI', { category: 'Biaya Admin', note: 'biaya top-up ' + wallet }));
+    const txs = [emailTx_(day, nominal, 'transfer', 'BNI', { to_account: wallet, category: 'Transfer', note: 'top-up e-wallet' })];
+    const fee = bniAmount_(lines, 'Biaya transaksi');
+    if (fee > 0) {
+      txs.push(emailTx_(day, fee, 'expense', 'BNI', { category: 'Biaya Admin', note: 'biaya top-up ' + wallet }));
+    } else if (walletDeductedFee_(wallet) > 0) {
+      txs.push(emailTx_(day, walletDeductedFee_(wallet), 'expense', wallet,
+        { category: 'Biaya Admin', note: 'biaya top-up, dipotong dompet' }));
     }
     return { txs: txs };
   }
-  if (/^Transaksi berhasil/.test(lines[0]) && matchLine_(lines, /^Jenis transaksi QRIS$/) && recipientAt >= 0) {
-    const total = matchLine_(lines, /^Total Rp([\d.]+)$/);
-    const paid = total ? parseInt(total[1].replace(/\./g, ''), 10) : amount;
-    return { txs: [emailTx_(day, paid, 'expense', 'BNI', { merchant: lines[recipientAt + 1] || '', note: 'QRIS' })] };
+
+  if (/^Transaksi berhasil/.test(lines[0])) {
+    if (/QRIS/.test(what) && recipientAt >= 0 && total !== null) {
+      return { txs: [emailTx_(day, total, 'expense', 'BNI', { merchant: lines[recipientAt + 1] || '', note: 'QRIS' })] };
+    }
+    // The payee is the biller or shop; order ids and customer numbers after the dash are never kept.
+    if (/Virtual Account/.test(what) && total !== null) {
+      const payee = lineAfter_(lines, 'Tujuan');
+      const brand = payee.match(/^([A-Za-z]+)[-_ ]/);
+      const merchant = brand ? brand[1].charAt(0).toUpperCase() + brand[1].slice(1).toLowerCase() : payee;
+      return { txs: [emailTx_(day, total, 'expense', 'BNI', { merchant: merchant, note: 'virtual account' })] };
+    }
+    const pln = matchLine_(lines, /^(PLN Token Listrik) •/);
+    if (pln && total !== null) {
+      return { txs: [emailTx_(day, total, 'expense', 'BNI', { merchant: pln[1], category: 'Tagihan', note: 'token listrik' })] };
+    }
+    return unsupported;
   }
-  return { error: 'belum didukung (' + what + ')' };
+
+  if (/^Transfer berhasil/.test(lines[0])) {
+    if (recipientAt < 0 || nominal === null) return unsupported;
+    const name = lines[recipientAt + 1] || '';
+    const bank = (lines[recipientAt + 2] || '').split('•')[0].trim();
+    const mine = lineAfter_(lines, 'Sumber dana');
+    const own = name && sameName_(name, mine);
+    if (own && !bank) return { error: 'bank tujuan tidak ditemukan' };
+    const txs = [own
+      ? emailTx_(day, nominal, 'transfer', 'BNI', { to_account: bank, category: 'Transfer', note: 'transfer ke rekening sendiri' })
+      : emailTx_(day, nominal, 'expense', 'BNI', { merchant: name, category: 'Lainnya', note: 'transfer' })];
+    const fee = bniAmount_(lines, 'Biaya admin');
+    if (fee > 0) txs.push(emailTx_(day, fee, 'expense', 'BNI', { category: 'Biaya Admin', note: 'biaya transfer' }));
+    return { txs: txs };
+  }
+
+  if (/^Kode tarik tunai/.test(lines[0])) {
+    if (nominal === null) return unsupported;
+    const txs = [emailTx_(day, nominal, 'transfer', 'BNI', { to_account: 'Cash', category: 'Transfer', note: 'tarik tunai (kode dibuat)' })];
+    const fee = bniAmount_(lines, 'Biaya transaksi');
+    if (fee > 0) txs.push(emailTx_(day, fee, 'expense', 'BNI', { category: 'Biaya Admin', note: 'biaya tarik tunai' }));
+    return { txs: txs };
+  }
+  return unsupported;
 }
 
-// "Internet Transaction Journal" (myBCA): fields come as "label", ":", "value" lines. Only QRIS payments so far.
+// "Internet Transaction Journal" (myBCA): fields come as "label", ":", "value" lines. QRIS payments, and transfers
+// ("Transfer Type: Transfer to <bank>") to my own account (transfer) or to someone else (expense).
 function parseBcaEmail_(text) {
   const lines = emailLines_(text);
   const f = {};
@@ -73,16 +138,36 @@ function parseBcaEmail_(text) {
     if (lines[i] === ':') f[lines[i - 1]] = lines[i + 1];
   }
   if (f['Status'] !== 'Successful') return { error: 'status ' + (f['Status'] || 'tidak ditemukan') };
-  if (!/QRIS/i.test(f['Transaction Type'] || '')) {
-    return { error: 'belum didukung (' + (f['Transaction Type'] || 'jenis tidak ditemukan') + ')' };
+
+  const isQris = /QRIS/i.test(f['Transaction Type'] || '');
+  const isTransfer = /^Transfer to /i.test(f['Transfer Type'] || '');
+  if (!isQris && !isTransfer) {
+    return { error: 'belum didukung (' + (f['Transaction Type'] || f['Transfer Type'] || 'jenis tidak ditemukan') + ')' };
   }
   const date = String(f['Transaction Date'] || '').match(/^(\d{1,2}) (\S+) (\d{4})/);
-  const total = String(f['Total Payment'] || '').match(/^IDR ([\d,]+)(?:\.\d+)?$/);
-  if (!date || !total) return { error: 'tanggal atau total tidak ditemukan' };
+  const money = function (label) {
+    const m = String(f[label] || '').match(/^IDR ([\d,]+)(?:\.\d+)?$/);
+    return m ? parseInt(m[1].replace(/,/g, ''), 10) : null;
+  };
+  const amount = money(isQris ? 'Total Payment' : 'Amount');
+  if (!date || amount === null) return { error: 'tanggal atau jumlah tidak ditemukan' };
   const day = emailDate_(date[1], date[2], date[3]);
   if (!day) return { error: 'bulan "' + date[2] + '" tidak dikenal' };
-  const amount = parseInt(total[1].replace(/,/g, ''), 10);
-  return { txs: [emailTx_(day, amount, 'expense', 'BCA', { merchant: f['Payment to'] || '', note: 'QRIS' })] };
+
+  if (isQris) {
+    return { txs: [emailTx_(day, amount, 'expense', 'BCA', { merchant: f['Payment to'] || '', note: 'QRIS' })] };
+  }
+  const name = f['Beneficiary Name'] || '';
+  const bank = f['Beneficiary Bank'] || '';
+  const hello = matchLine_(lines, /^Hello\s+(.+?),?$/);
+  const own = name && hello && sameName_(name, hello[1]);
+  if (own && !bank) return { error: 'bank tujuan tidak ditemukan' };
+  const txs = [own
+    ? emailTx_(day, amount, 'transfer', 'BCA', { to_account: bank, category: 'Transfer', note: 'transfer ke rekening sendiri' })
+    : emailTx_(day, amount, 'expense', 'BCA', { merchant: name, category: 'Lainnya', note: 'transfer' })];
+  const fee = money('Fee');
+  if (fee > 0) txs.push(emailTx_(day, fee, 'expense', 'BCA', { category: 'Biaya Admin', note: 'biaya transfer' }));
+  return { txs: txs };
 }
 
 function parseBankEmail_(bank, text) {

@@ -9,6 +9,8 @@
 const EMAIL_SOURCES = [
   { bank: 'BNI', from: 'wondr@bni.co.id', subject: 'Transaksi berhasil!' },
   { bank: 'BNI', from: 'wondr@bni.co.id', subject: 'Top-up berhasil!' },
+  { bank: 'BNI', from: 'wondr@bni.co.id', subject: 'Transfer berhasil!' },
+  { bank: 'BNI', from: 'wondr@bni.co.id', subject: 'Kode tarik tunai siap digunakan!' },
   { bank: 'BCA', from: 'bca@bca.co.id', subject: 'Internet Transaction Journal' },
 ];
 const SAMPLE_LOOKBACK_DAYS = 60;
@@ -53,9 +55,12 @@ function emailText_(message) {
     .replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
 }
 
-// Account and reference numbers are long digit runs; amounts carry separators and stay readable.
+// Account and reference numbers are long digit runs; amounts carry separators and stay readable. The greeting line
+// ("Hai, NAME" / "Hello NAME,") is replaced too; other names (a transfer's recipient) are not, so read before sharing.
 function maskDigits_(text) {
-  return text.replace(/\d{6,}/g, function (m) { return m.slice(0, 2) + '*'.repeat(m.length - 4) + m.slice(-2); });
+  return text
+    .replace(/\d{6,}/g, function (m) { return m.slice(0, 2) + '*'.repeat(m.length - 4) + m.slice(-2); })
+    .replace(/^\s*(Hai,|Hello)\s+.*$/gm, '$1 [NAMA]');
 }
 
 // Run once from the editor (it asks for Gmail read access), then read the log. Names are not masked: check the
@@ -75,6 +80,8 @@ function dumpEmailSamples() {
 }
 
 const PREVIEW_DAYS = 7;
+const AUDIT_DAYS = 90;
+const AUDIT_MAX_PER_SOURCE = 60;
 
 function listEmailIds_(query) {
   let ids = [];
@@ -98,7 +105,7 @@ function previewEmails() {
   const failed = [];
   EMAIL_SOURCES.forEach(function (source) {
     listEmailIds_(emailQuery_(source, PREVIEW_DAYS)).forEach(function (id) {
-      const message = Gmail.Users.Messages.get('me', id, { format: 'full' });
+      const message = getEmail_(id, { format: 'full' });
       const r = parseBankEmail_(source.bank, emailText_(message));
       if (r.error) failed.push('• ' + source.bank + ' "' + source.subject + '": ' + r.error);
       else r.txs.forEach(function (tx) { parsed.push(tx); });
@@ -169,7 +176,7 @@ function fetchNewEmails_() {
   EMAIL_SOURCES.forEach(function (source) {
     listEmailIds_(emailQuerySince_(source, since)).forEach(function (id) {
       if (logged[id]) return;
-      const message = Gmail.Users.Messages.get('me', id, { format: 'full' });
+      const message = getEmail_(id, { format: 'full' });
       const at = Number(message.internalDate);
       if (at / 1000 < since) return;
       const r = parseBankEmail_(source.bank, emailText_(message));
@@ -294,4 +301,107 @@ function dailyEmailImport() {
   } finally {
     lock.releaseLock();
   }
+}
+
+function countBy_(obj, key) {
+  obj[key] = (obj[key] || 0) + 1;
+}
+
+function countLines_(obj) {
+  return Object.keys(obj).sort(function (a, b) { return obj[b] - obj[a]; })
+    .map(function (k) { return '  ' + obj[k] + 'x ' + k; }).join('\n') || '  (none)';
+}
+
+// messages.get with a pause and a retry when Gmail's per-minute quota (units per user) is hit.
+function getEmail_(id, params) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return Gmail.Users.Messages.get('me', id, params);
+    } catch (err) {
+      if (attempt >= 3 || String(err.message).indexOf('Quota exceeded') < 0) throw err;
+      Utilities.sleep(30000);
+    }
+  }
+}
+
+// Read-only check of the parsers against old mail, run from the editor. Logs counts and parsed fields only, never
+// email text: how many emails each sender has per subject (and which subjects are not parsed), how many of the newest
+// AUDIT_MAX_PER_SOURCE per kind parse, why the rest do not, the wallets seen in top-ups and how many emails already
+// match a transaction in the sheet. Paced to stay under Gmail's per-minute quota (about 2 minutes per 100 emails).
+function auditEmails() {
+  const senders = [];
+  EMAIL_SOURCES.forEach(function (s) { if (senders.indexOf(s.from) < 0) senders.push(s.from); });
+  senders.forEach(function (from) {
+    const mine = EMAIL_SOURCES.filter(function (s) { return s.from === from; });
+    const subjects = {};
+    mine.forEach(function (s) { subjects[s.subject] = listEmailIds_(emailQuery_(s, AUDIT_DAYS)).length; });
+    const query = 'from:' + from + ' newer_than:' + AUDIT_DAYS + 'd ' +
+      mine.map(function (s) { return '-subject:"' + s.subject + '"'; }).join(' ');
+    listEmailIds_(query).forEach(function (id) {
+      const m = getEmail_(id, { format: 'metadata', metadataHeaders: ['Subject'] });
+      const header = (m.payload.headers || []).filter(function (h) { return h.name === 'Subject'; })[0];
+      countBy_(subjects, (header ? header.value : '(no subject)') + '   <- not parsed');
+      Utilities.sleep(1300);
+    });
+    console.log('Subjects from ' + from + ', last ' + AUDIT_DAYS + ' days:\n' + countLines_(subjects));
+  });
+
+  const rows = readTransactions_();
+  const errors = {};
+  const wallets = {};
+  const lines = [];
+  let total = 0;
+  let parsed = 0;
+  let known = 0;
+  EMAIL_SOURCES.forEach(function (source) {
+    const ids = listEmailIds_(emailQuery_(source, AUDIT_DAYS));
+    const checked = ids.slice(0, AUDIT_MAX_PER_SOURCE);
+    console.log(source.bank + ' "' + source.subject + '": checking ' + checked.length + ' of ' + ids.length);
+    checked.forEach(function (id) {
+      total++;
+      const r = parseBankEmail_(source.bank, emailText_(getEmail_(id, { format: 'full' })));
+      Utilities.sleep(1300);
+      if (r.error) {
+        countBy_(errors, source.bank + ' "' + source.subject + '": ' + r.error);
+        return;
+      }
+      parsed++;
+      if (isDuplicateTx_(r.txs[0], rows)) known++;
+      r.txs.forEach(function (tx) {
+        if (tx.type === 'transfer') countBy_(wallets, tx.to_account + (r.txs.length > 1 ? ' (fee row added)' : ' (no fee row)'));
+        lines.push(tx.date + ' ' + tx.account + ' ' + tx.type + ' ' + rupiah_(tx.amount) + ' ' + (tx.merchant || tx.to_account || tx.category));
+      });
+    });
+  });
+  lines.sort();
+  console.log('Parsed ' + parsed + ' of ' + total + ' checked emails; ' + known +
+    ' already match a transaction in the sheet (same type, account, amount, within 1 day).');
+  console.log('Not parsed, by reason:\n' + countLines_(errors));
+  console.log('Top-up wallets:\n' + countLines_(wallets));
+  console.log('Parsed rows (' + lines.length + '):\n' + lines.join('\n'));
+}
+
+// Run from the editor after auditEmails(): logs, per kind of email, up to 3 emails that the parsers cannot read,
+// each a different template (told apart by the "Kamu baru aja ..." sentence or the BCA transaction type), masked
+// like dumpEmailSamples(). Read the output before pasting it anywhere: recipient names are not masked.
+function dumpFailedSamples() {
+  EMAIL_SOURCES.forEach(function (source) {
+    const label = source.bank + ' | ' + source.subject;
+    const seen = {};
+    let shown = 0;
+    const ids = listEmailIds_(emailQuery_(source, AUDIT_DAYS)).slice(0, 40);
+    for (let i = 0; i < ids.length && shown < 3; i++) {
+      const message = getEmail_(ids[i], { format: 'full' });
+      Utilities.sleep(1300);
+      const text = emailText_(message);
+      if (!parseBankEmail_(source.bank, text).error) continue;
+      const kind = (text.match(/Kamu baru aja (.+?) dengan detail/) || text.match(/Transaction Type\s*:?\s*\n?\s*(.+)/) || [])[1] || '?';
+      if (seen[kind]) continue;
+      seen[kind] = true;
+      shown++;
+      console.log('=== ' + label + ' | ' + kind + ' | ' + new Date(Number(message.internalDate)).toISOString() + '\n' +
+        maskDigits_(text).slice(0, 2500));
+    }
+    if (!shown) console.log('=== ' + label + ': no unreadable email in the newest ' + ids.length);
+  });
 }
