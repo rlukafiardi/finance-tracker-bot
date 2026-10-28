@@ -63,7 +63,8 @@ function topCats_(byCat, n) {
 function totalsLines_(s, topN) {
   const lines = ['💸 Pengeluaran: ' + rupiah_(s.expense)];
   if (s.expense) lines.push('└ ' + topCats_(s.byCat, topN));
-  lines.push('💰 Pemasukan: ' + rupiah_(s.income), '🏦 Ditabung: ' + rupiah_(s.saving));
+  lines.push('💰 Pemasukan: ' + rupiah_(s.income), '🏦 Ditabung: ' + rupiah_(s.kept));
+  if (s.saving) lines.push('└ dipindah ke tabungan: ' + rupiah_(s.saving));
   return lines;
 }
 

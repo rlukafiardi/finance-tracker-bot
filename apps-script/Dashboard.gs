@@ -24,7 +24,7 @@ function dashboardData_(all, ctx, today, weekStart, budgets) {
   while (months.length < 12) months.unshift(prevMonth_(months[0]));
   const trend = months.map(function (m) {
     const s = sumRows_(between_(all, m), ctx);
-    return [monthLabel_(m.from), s.income, s.expense, s.saving, s.income > 0 ? (s.income - s.expense) / s.income : ''];
+    return [monthLabel_(m.from), s.income, s.expense, s.kept, s.income > 0 ? (s.income - s.expense) / s.income : ''];
   });
 
   const limit = {};
@@ -50,7 +50,7 @@ function dashboardData_(all, ctx, today, weekStart, budgets) {
     kpis: [
       ['Pengeluaran bulan ini', cur.expense, '#,##0'],
       ['Pemasukan bulan ini', cur.income, '#,##0'],
-      ['Ditabung bulan ini', cur.saving, '#,##0'],
+      ['Ditabung bulan ini', cur.kept, '#,##0'],
       ['Savings rate bulan ini', cur.income > 0 ? (cur.income - cur.expense) / cur.income : '-', '0.0%'],
       ['Total saldo akun', total, '#,##0'],
     ],
