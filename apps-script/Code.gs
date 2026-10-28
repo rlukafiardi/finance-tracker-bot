@@ -123,6 +123,10 @@ function handleMessage_(msg, to) {
       const quip = parsed.quip ? '\n\n🤖 ' + parsed.quip : '';
       if (parsed.intent === 'log') {
         r = prepareLog_(parsed.transactions || [], msg.text, ctx, parsed.reply_hint);
+      } else if (parsed.intent === 'account') {
+        const a = parsed.account_setup || {};
+        const opening = Number.isInteger(a.opening) && a.opening >= 0 ? a.opening : null;
+        r = prepareAccount_(String(a.name || '').trim(), opening, parseKind_(a.kind), ctx);
       } else if (parsed.intent === 'delete') {
         r = prepareDeleteLast_();
       } else if (parsed.intent === 'correct') {

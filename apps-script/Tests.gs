@@ -29,6 +29,8 @@ const EXAMPLES = [
   { message: 'nabung 2jt dari bca ke bibit', expect: { intent: 'log', transactions: [{ amount: 2000000, type: 'transfer', account: 'BCA', to_account: 'Bibit' }] } },
   { message: 'berapa tabunganku sekarang', expect: { intent: 'query', transactions: [], query: { metric: 'account_balance', account_kind: 'tabungan' } } },
   { message: 'investasiku berapa?', expect: { intent: 'query', transactions: [], query: { metric: 'account_balance', account_kind: 'investasi' } } },
+  { message: 'tambah akun bibit 5jt investasi', expect: { intent: 'account', transactions: [], account_setup: { name: 'Bibit', opening: 5000000, kind: 'investasi' } } },
+  { message: 'saldo awal bca 10jt', expect: { intent: 'account', transactions: [], account_setup: { name: 'BCA', opening: 10000000 } } },
   { message: 'total pengeluaran selama ini', expect: { intent: 'query', transactions: [], query: { metric: 'spending', period: 'all' } } },
 ];
 
@@ -58,7 +60,7 @@ function diff_(expect, got) {
       });
     });
   }
-  ['correction', 'query'].forEach(function (section) {
+  ['correction', 'query', 'account_setup'].forEach(function (section) {
     Object.keys(expect[section] || {}).forEach(function (k) {
       const value = got[section] ? got[section][k] : undefined;
       if (!same_(expect[section][k], value)) problems.push(section + '.' + k + ' ' + value + ' != ' + expect[section][k]);
