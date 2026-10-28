@@ -103,7 +103,6 @@ The bot reads BNI and BCA notification emails and proposes them as transactions.
 | BNI `Transaksi berhasil!`: Virtual Account | Expense on BNI, merchant = the brand before the dash (e.g. Shopee); order ids are not kept |
 | BNI `Transaksi berhasil!`: PLN token | Expense on BNI, category Tagihan (the bank admin fee is inside the total); meter and token numbers are not kept |
 | BNI `Transfer berhasil!` | To my own account (recipient name = my name): transfer to that bank. To someone else: expense with category Lainnya (never sent to Gemini). A fee above 0 becomes a Biaya Admin row |
-| BNI `Kode tarik tunai siap digunakan!` | Transfer BNI → Cash. The email is sent when the code is made, so a code that is never used is still proposed: delete it by id |
 | BNI `Top-up berhasil!` (e-wallet) | Transfer BNI → the e-wallet, plus the top-up fee as a Biaya Admin expense. For wallets that deduct the fee themselves (ShopeePay 500, OVO 1.000; `WALLET_DEDUCTED_FEES` in `EmailParse.gs`) the fee is an expense on the wallet account, since the email shows none |
 | BCA `Internet Transaction Journal`: QRIS | Expense on BCA |
 | BCA `Internet Transaction Journal`: transfer | Same rule as BNI transfers (own account → transfer, else expense), fee as a Biaya Admin row on BCA |
@@ -112,7 +111,8 @@ The bot reads BNI and BCA notification emails and proposes them as transactions.
   Fix a line before approving: `ubah no 2 jadi parkir motor` (a category that does not exist yet is created on ✅).
 - Category: the one used before for the same merchant, else one Gemini call for the new merchants.
 - An email whose amount, account and date (±1 day) already match a transaction is skipped as already logged.
-- Other email types (transfers, non-QRIS, other banks) are listed as "belum didukung" once, never guessed.
+- Other email types (non-QRIS, other banks) are listed as "belum didukung" once, never guessed. Cash-withdrawal code
+  emails (`Kode tarik tunai`) are ignored on purpose: I type those myself.
 - Only emails received after `installEmailImport()` ran are read. `email_log` remembers every handled email, so none
   is offered twice; a batch that is replaced by chat or expires is offered again at the next run.
 - `raw_message` of these rows is just `email`. The email text is never stored or logged.

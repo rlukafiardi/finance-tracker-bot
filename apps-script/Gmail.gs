@@ -10,7 +10,6 @@ const EMAIL_SOURCES = [
   { bank: 'BNI', from: 'wondr@bni.co.id', subject: 'Transaksi berhasil!' },
   { bank: 'BNI', from: 'wondr@bni.co.id', subject: 'Top-up berhasil!' },
   { bank: 'BNI', from: 'wondr@bni.co.id', subject: 'Transfer berhasil!' },
-  { bank: 'BNI', from: 'wondr@bni.co.id', subject: 'Kode tarik tunai siap digunakan!' },
   { bank: 'BCA', from: 'bca@bca.co.id', subject: 'Internet Transaction Journal' },
 ];
 const SAMPLE_LOOKBACK_DAYS = 60;
@@ -197,7 +196,7 @@ function fillEmailCategories_(items, rows, ctx) {
       if (tx.type !== 'expense' || tx.category) return;
       const known = tx.merchant ? lookupMerchantCategory_(tx.merchant, rows) : null;
       if (known) tx.category = known;
-      else if (tx.merchant) unknown[tx.merchant.toLowerCase()] = tx.merchant;
+      else if (tx.merchant && !tx.person) unknown[tx.merchant.toLowerCase()] = tx.merchant;
       else tx.category = 'Lainnya';
     });
   });

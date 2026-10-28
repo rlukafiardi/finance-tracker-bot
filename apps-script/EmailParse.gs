@@ -1,6 +1,7 @@
 // Parsers for bank notification emails (text from emailText_). Each returns { txs } or { error } and never guesses:
 // an email type that is not understood is reported, not turned into a transaction.
 // A tx has the transactions-tab fields; category is null when the parser cannot tell (decided later).
+// person: true marks a payment to a private person: its category comes from earlier rows or Lainnya, never from Gemini.
 
 const EMAIL_MONTHS = {
   jan: 1, feb: 2, mar: 3, apr: 4, mei: 5, may: 5, jun: 6, jul: 7, agu: 8, aug: 8, agt: 8, sep: 9, okt: 10, oct: 10,
@@ -14,6 +15,11 @@ const WALLET_DEDUCTED_FEES = { shopeepay: 500, ovo: 1000 };
 function walletDeductedFee_(wallet) {
   const fee = WALLET_DEDUCTED_FEES[wallet.toLowerCase().replace(/\s+/g, '')];
   return Number.isInteger(fee) ? fee : 0;
+}
+
+// Some recipient names arrive with a trailing " -".
+function cleanName_(name) {
+  return name.replace(/\s*-\s*$/, '').trim();
 }
 
 function emailLines_(text) {
@@ -56,7 +62,6 @@ function lineAfter_(lines, label) {
 //   Top-up berhasil!                   e-wallet top-up: transfer to the wallet, plus its fee
 //   Transaksi berhasil!                QRIS, Virtual Account and PLN token payments
 //   Transfer berhasil!                 to my own account (transfer) or to someone else (expense)
-//   Kode tarik tunai siap digunakan!   cash withdrawal (transfer to Cash)
 function parseBniEmail_(text) {
   const lines = emailLines_(text);
   const date = matchLine_(lines, /^Tanggal (\d{1,2})[ -](\S+?)[ -](\d{4})$/);
@@ -106,26 +111,19 @@ function parseBniEmail_(text) {
 
   if (/^Transfer berhasil/.test(lines[0])) {
     if (recipientAt < 0 || nominal === null) return unsupported;
-    const name = lines[recipientAt + 1] || '';
+    const name = cleanName_(lines[recipientAt + 1] || '');
     const bank = (lines[recipientAt + 2] || '').split('•')[0].trim();
     const mine = lineAfter_(lines, 'Sumber dana');
     const own = name && sameName_(name, mine);
     if (own && !bank) return { error: 'bank tujuan tidak ditemukan' };
     const txs = [own
       ? emailTx_(day, nominal, 'transfer', 'BNI', { to_account: bank, category: 'Transfer', note: 'transfer ke rekening sendiri' })
-      : emailTx_(day, nominal, 'expense', 'BNI', { merchant: name, category: 'Lainnya', note: 'transfer' })];
+      : emailTx_(day, nominal, 'expense', 'BNI', { merchant: name, person: true, note: 'transfer' })];
     const fee = bniAmount_(lines, 'Biaya admin');
     if (fee > 0) txs.push(emailTx_(day, fee, 'expense', 'BNI', { category: 'Biaya Admin', note: 'biaya transfer' }));
     return { txs: txs };
   }
 
-  if (/^Kode tarik tunai/.test(lines[0])) {
-    if (nominal === null) return unsupported;
-    const txs = [emailTx_(day, nominal, 'transfer', 'BNI', { to_account: 'Cash', category: 'Transfer', note: 'tarik tunai (kode dibuat)' })];
-    const fee = bniAmount_(lines, 'Biaya transaksi');
-    if (fee > 0) txs.push(emailTx_(day, fee, 'expense', 'BNI', { category: 'Biaya Admin', note: 'biaya tarik tunai' }));
-    return { txs: txs };
-  }
   return unsupported;
 }
 
@@ -157,14 +155,14 @@ function parseBcaEmail_(text) {
   if (isQris) {
     return { txs: [emailTx_(day, amount, 'expense', 'BCA', { merchant: f['Payment to'] || '', note: 'QRIS' })] };
   }
-  const name = f['Beneficiary Name'] || '';
+  const name = cleanName_(f['Beneficiary Name'] || '');
   const bank = f['Beneficiary Bank'] || '';
   const hello = matchLine_(lines, /^Hello\s+(.+?),?$/);
   const own = name && hello && sameName_(name, hello[1]);
   if (own && !bank) return { error: 'bank tujuan tidak ditemukan' };
   const txs = [own
     ? emailTx_(day, amount, 'transfer', 'BCA', { to_account: bank, category: 'Transfer', note: 'transfer ke rekening sendiri' })
-    : emailTx_(day, amount, 'expense', 'BCA', { merchant: name, category: 'Lainnya', note: 'transfer' })];
+    : emailTx_(day, amount, 'expense', 'BCA', { merchant: name, person: true, note: 'transfer' })];
   const fee = money('Fee');
   if (fee > 0) txs.push(emailTx_(day, fee, 'expense', 'BCA', { category: 'Biaya Admin', note: 'biaya transfer' }));
   return { txs: txs };
