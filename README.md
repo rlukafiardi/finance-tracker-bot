@@ -4,7 +4,7 @@ A personal finance tracker you talk to in Telegram. Type `kopi 25rb pake gopay`,
 Google Sheet. Ask `pengeluaran minggu ini?` or `berapa tabunganku sekarang?` and it answers from the Sheet.
 It runs entirely on free tiers: no server, no credit card, $0 per month.
 
-- **Chat:** Telegram group "Radikal AI Assistant", topic 💰 Finance (other topics are reserved for future features)
+- **Chat:** a private Telegram group with Topics, topic 💰 Finance (other topics are reserved for future features)
 - **Brain:** Gemini (free tier) turns free text into structured transactions; all numbers come from code, not the model
 - **Backend:** Google Apps Script web app
 - **Storage:** Google Sheet (four data tabs), with a live balance per account

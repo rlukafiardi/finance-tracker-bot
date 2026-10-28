@@ -116,7 +116,7 @@ and the dashboard answers "how much did I spend / save this month".
   unverified against the bank. Dashboard card sparklines show only from the second month.
 
 ## Status
-- Works (2026-10-28, tested by me end to end): live in group "Radikal AI Assistant🗿" (chat -1004451166719),
+- Works (2026-10-28, tested by me end to end): live in my private Telegram group,
   topic 💰 Finance (id 2), group only (ALLOWED_CHAT_ID has just the group; private chat answers /whereami only).
   Scheduled weekly/monthly recaps installed and confirmed working. Webhook through the Cloudflare relay; `npm run deploy` ships
   changes (web app deployment @6+). Logging with ✅/❌ confirmation, corrections, delete/undo, accounts with kinds
