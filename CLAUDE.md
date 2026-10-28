@@ -48,6 +48,9 @@ and the dashboard answers "how much did I spend / save this month".
 - 2026-10-28: `accounts.current_balance` is a per-row SUMIFS formula (same rule as balanceReply_), not a value
   written by code, so it stays right after corrections and deletes. Per-row, not one array formula, because a
   spilled array would make appendRow/getLastRow see the whole column as used.
+- 2026-10-28: Switched from copy-paste to clasp 3.x, installed as a devDependency (Node via Homebrew). Auth file in
+  `.clasp-auth/` via `--auth` (keeps the token out of ~ on a Mac also used for work). `npm run push` = syntax check
+  (all .gs concatenated, so duplicate globals are caught) + `clasp push --force`. The repo is the source of truth.
 - 2026-10-28: Delete ("hapus yang tadi", /hapus) removes all rows of the latest message (same created_at), so a
   multi-item message undoes as one unit; /hapus <id> removes one row. Budgets are monthly per expense category
   (`budgets` tab); replies warn at >= 80% on every expense in that category, not only when crossing.

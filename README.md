@@ -29,7 +29,16 @@ updates by itself and matches `/saldo`. Unknown accounts are created automatical
 - `apps-script/`: the code to paste into the Apps Script editor (one file per `.gs`)
 - `CLAUDE.md`: project notes
 
-## Setup (copy-paste, no tooling)
+## Updating the code (clasp)
+
+Code is pushed with Google's clasp, installed in this project (not globally). Login token stays in `.clasp-auth/` (gitignored).
+
+- One-time: turn on the Apps Script API at https://script.google.com/home/usersettings (personal account),
+  run `npm install`, `npm run login` (pick rlukafiardi@gmail.com), and put the Script ID in `.clasp.json`.
+- Every change: `npm run push` (syntax check, then upload). In polling mode it is live immediately.
+- Do not edit code in the browser editor: the next push overwrites it.
+
+## Setup (first time, copy-paste)
 
 1. Telegram: create the bot with @BotFather and keep the token. Message the bot once, then open
    `https://api.telegram.org/bot<TOKEN>/getUpdates` in your browser to read your numeric `chat.id`.
