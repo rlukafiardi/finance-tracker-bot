@@ -50,10 +50,22 @@ function accountsSheet_() {
   let sh = ss.getSheetByName('accounts');
   if (!sh) {
     sh = ss.insertSheet('accounts');
-    sh.getRange(1, 1, 1, 2).setValues([['account', 'opening_balance']]);
+    sh.getRange(1, 1, 1, 3).setValues([['account', 'opening_balance', 'current_balance']]);
     sh.setFrozenRows(1);
+    sh.getRange('B:C').setNumberFormat('#,##0');
   }
   return sh;
+}
+
+// current_balance for accounts row r, the same rule as balanceReply_: opening + income - expense - saving
+// - transfers out (account) + transfers in (to_account). SUMIFS is case-insensitive, like matchAccount_.
+// Apps Script formulas always use English function names and comma separators, whatever the sheet locale.
+function balanceFormula_(r) {
+  const sum = function (col, type) {
+    return 'SUMIFS(transactions!C:C,transactions!' + col + ':' + col + ',$A' + r + ',transactions!D:D,"' + type + '")';
+  };
+  return '=$B' + r + '+' + sum('F', 'income') + '-' + sum('F', 'expense') + '-' + sum('F', 'saving') +
+    '-' + sum('F', 'transfer') + '+' + sum('K', 'transfer');
 }
 
 function getAccounts_() {
@@ -72,7 +84,9 @@ function matchAccount_(name, accounts) {
 }
 
 function addAccount_(name, opening) {
-  accountsSheet_().appendRow([name, opening]);
+  const sh = accountsSheet_();
+  const r = sh.getLastRow() + 1;
+  sh.getRange(r, 1, 1, 3).setValues([[name, opening, balanceFormula_(r)]]);
 }
 
 function setOpening_(name, opening) {
