@@ -19,8 +19,9 @@ Google Sheet with two tabs.
 `transactions`: `id, date, amount, type, category, account, merchant, note, raw_message, created_at, to_account`
 (`type` is expense, income, saving or transfer; `to_account` is only used by transfers).
 `categories`: `type, category`. Seeded by `setup()` with the defaults in `apps-script/Setup.gs`.
-`accounts`: `account, opening_balance`. Balance = opening balance + income - expense - saving, with transfers
-moving money between accounts. Unknown accounts are created automatically with opening balance 0.
+`accounts`: `account, opening_balance, current_balance`. Balance = opening balance + income - expense - saving,
+with transfers moving money between accounts. `current_balance` is a SUMIFS formula over `transactions`, so it
+updates by itself and matches `/saldo`. Unknown accounts are created automatically with opening balance 0.
 `budgets`: `category, monthly_limit` (expense categories only).
 
 ## Layout

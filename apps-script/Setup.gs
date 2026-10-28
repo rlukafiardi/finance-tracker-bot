@@ -34,7 +34,14 @@ function setup() {
     cat.appendRow(['saving', 'Lainnya']);
   }
 
-  accountsSheet_();
+  // accounts: add the current_balance column (a live formula) to any row that does not have it yet.
+  const acc = accountsSheet_();
+  if (!acc.getRange(1, 3).getValue()) acc.getRange(1, 3).setValue('current_balance');
+  for (let r = 2; r <= acc.getLastRow(); r++) {
+    if (acc.getRange(r, 1).getValue() && !acc.getRange(r, 3).getFormula()) acc.getRange(r, 3).setFormula(balanceFormula_(r));
+  }
+  acc.getRange('B:C').setNumberFormat('#,##0');
+
   budgetsSheet_();
   console.log('Setup done.');
 }
