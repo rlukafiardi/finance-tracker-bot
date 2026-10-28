@@ -50,7 +50,7 @@ function accountsSheet_() {
   let sh = ss.getSheetByName('accounts');
   if (!sh) {
     sh = ss.insertSheet('accounts');
-    sh.getRange(1, 1, 1, 3).setValues([['account', 'opening_balance', 'current_balance']]);
+    sh.getRange(1, 1, 1, 4).setValues([['account', 'opening_balance', 'current_balance', 'kind']]);
     sh.setFrozenRows(1);
     sh.getRange('B:C').setNumberFormat('#,##0');
   }
@@ -71,9 +71,12 @@ function balanceFormula_(r) {
 function getAccounts_() {
   const sh = spreadsheet_().getSheetByName('accounts');
   if (!sh || sh.getLastRow() < 2) return [];
-  return sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues()
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues()
     .filter(function (r) { return String(r[0]).trim(); })
-    .map(function (r) { return { name: String(r[0]).trim(), opening: Number(r[1]) || 0 }; });
+    .map(function (r) {
+      const name = String(r[0]).trim();
+      return { name: name, opening: Number(r[1]) || 0, kind: parseKind_(r[3]) || guessKind_(name) };
+    });
 }
 
 function matchAccount_(name, accounts) {
@@ -83,21 +86,30 @@ function matchAccount_(name, accounts) {
   return hit ? hit.name : null;
 }
 
-function addAccount_(name, opening) {
+function addAccount_(name, opening, kind) {
   const sh = accountsSheet_();
   const r = sh.getLastRow() + 1;
-  sh.getRange(r, 1, 1, 3).setValues([[name, opening, balanceFormula_(r)]]);
+  sh.getRange(r, 1, 1, 4).setValues([[name, opening, balanceFormula_(r), kind || guessKind_(name)]]);
 }
 
-function setOpening_(name, opening) {
+// Writes one cell (column col) of the accounts row for `name`.
+function setAccountCell_(name, col, value) {
   const sh = accountsSheet_();
   const names = sh.getRange(2, 1, Math.max(sh.getLastRow() - 1, 1), 1).getValues();
   for (let i = 0; i < names.length; i++) {
     if (String(names[i][0]).trim().toLowerCase() === name.toLowerCase()) {
-      sh.getRange(i + 2, 2).setValue(opening);
+      sh.getRange(i + 2, col).setValue(value);
       return;
     }
   }
+}
+
+function setOpening_(name, opening) {
+  setAccountCell_(name, 2, opening);
+}
+
+function setAccountKind_(name, kind) {
+  setAccountCell_(name, 4, kind);
 }
 
 // Returns { tx, newAccounts } with a cleaned transaction, or { error } with a reason.
@@ -117,13 +129,13 @@ function normalizeTx_(tx, ctx) {
     return raw;
   };
 
-  let account = pickAccount(tx.account || (tx.type === 'transfer' ? '' : optionalProp_('DEFAULT_ACCOUNT')));
+  let account = pickAccount(tx.account || optionalProp_('DEFAULT_ACCOUNT'));
   let toAccount = '';
   let category;
 
   if (tx.type === 'transfer') {
     toAccount = pickAccount(tx.to_account);
-    if (!account || !toAccount) return { error: 'transfer butuh akun asal dan tujuan' };
+    if (!account || !toAccount) return { error: 'transfer butuh akun asal dan tujuan, mis. "nabung 2jt dari bca ke bibit"' };
     if (account.toLowerCase() === toAccount.toLowerCase()) return { error: 'akun asal dan tujuan sama' };
     category = 'Transfer';
   } else {
@@ -222,8 +234,14 @@ function prepareLog_(txs, raw, ctx, hint) {
   return {
     action: { kind: 'log', txs: clean, raw: raw, newAccounts: created },
     preview: '📝 Catat ' + (clean.length > 1 ? clean.length + ' transaksi' : 'ini') + '?\n\n' +
-      clean.map(describe_).join('\n') + newAccountsNote_(created),
+      clean.map(describe_).join('\n') + newAccountsNote_(created) + savingTip_(clean),
   };
+}
+
+// A plain "nabung 2jt" leaves the tracked accounts; naming the savings account keeps the money visible.
+function savingTip_(txs) {
+  const plain = txs.some(function (t) { return t.type === 'saving'; });
+  return plain ? '\n\n💡 Tip: sebut akun tujuannya (mis. "nabung 2jt dari bca ke Tabungan BCA") biar saldonya ikut kelihatan.' : '';
 }
 
 function commitLog_(a) {
@@ -354,10 +372,7 @@ function recentReply_(n) {
 
 // Balance = opening balance + income - expense - saving, with transfers moving money between accounts.
 // Only accounts listed in the accounts tab are tracked; rows without an account do not affect any balance.
-function balanceReply_(ctx, onlyAccount) {
-  if (!ctx.accounts.length) {
-    return 'Belum ada akun 🏦 Tambah dengan /akun BNI 1,5jt, atau sebut akun saat mencatat.';
-  }
+function accountBalances_(ctx) {
   const bal = {};
   ctx.accounts.forEach(function (a) { bal[a.name] = a.opening; });
   const move = function (name, delta) {
@@ -374,21 +389,48 @@ function balanceReply_(ctx, onlyAccount) {
       move(r.to_account, r.amount);
     }
   });
+  return bal;
+}
+
+// All accounts grouped by kind, one account, or one kind ("berapa tabunganku" -> kind tabungan).
+function balanceReply_(ctx, onlyAccount, onlyKind) {
+  if (!ctx.accounts.length) {
+    return 'Belum ada akun 🏦 Tambah dengan /akun BNI 1,5jt, atau sebut akun saat mencatat.';
+  }
+  const bal = accountBalances_(ctx);
 
   if (onlyAccount) {
     const key = matchAccount_(onlyAccount, ctx.accounts);
     if (!key) return 'Akun "' + onlyAccount + '" belum ada. Tambah dengan /akun ' + onlyAccount + ' <saldo awal>.';
     return '🏦 Saldo ' + key + ': ' + rupiah_(bal[key]);
   }
-  const names = Object.keys(bal).sort();
-  const total = names.reduce(function (s, n) { return s + bal[n]; }, 0);
-  return '🏦 Saldo akun:\n\n' + names.map(function (n) { return n + ': ' + rupiah_(bal[n]); }).join('\n') +
-    '\n\nTotal: ' + rupiah_(total) + '\n(saldo awal + transaksi yang tercatat)';
+
+  const groups = {};
+  ctx.accounts.forEach(function (a) {
+    const k = ACCOUNT_KINDS.indexOf(a.kind) >= 0 ? a.kind : 'lainnya';
+    (groups[k] = groups[k] || []).push(a.name);
+  });
+  if (onlyKind && !groups[onlyKind]) {
+    return 'Belum ada akun jenis ' + onlyKind + ' 🏷️ Tandai dengan /akun <nama> ' + onlyKind + ', mis. /akun Bibit investasi';
+  }
+  const kinds = onlyKind ? [onlyKind] : ACCOUNT_KINDS.filter(function (k) { return groups[k]; });
+
+  let total = 0;
+  const blocks = kinds.map(function (k) {
+    const names = groups[k].sort();
+    const sub = names.reduce(function (s, n) { return s + bal[n]; }, 0);
+    total += sub;
+    return KIND_LABEL[k] + ': ' + rupiah_(sub) + '\n' +
+      names.map(function (n) { return '   ' + n + ' ' + rupiah_(bal[n]); }).join('\n');
+  });
+  return (onlyKind ? KIND_LABEL[onlyKind] + ' kamu sekarang' : '💰 Saldo akun') + ':\n\n' + blocks.join('\n\n') +
+    (kinds.length > 1 ? '\n\n💰 Total: ' + rupiah_(total) : '') + '\n(saldo awal + transaksi yang tercatat)';
 }
 
 // Weeks run Monday to Sunday.
 function periodRange_(period) {
   const to = todayStr_();
+  if (period === 'all') return { from: '0000-01-01', to: to, label: 'sampai sekarang' };
   if (period === 'today') return { from: to, to: to, label: 'hari ini' };
   if (period === 'month') return { from: to.slice(0, 8) + '01', to: to, label: 'bulan ini' };
   if (period === 'week') {
@@ -401,14 +443,19 @@ function periodRange_(period) {
 }
 
 // Savings rate = (income - expense) / income. Balance (sisa kas) = income - expense - saving.
-// Transfers are ignored here: they only move money between accounts.
+// "Saving" = saving-type rows plus net transfers into tabungan accounts; other transfers only move money around.
+// No period means this month; "sekarang"/"total"/"selama ini" arrive as period "all".
 function answerQuery_(q, ctx) {
   if (!q) return 'Pertanyaan tidak jelas. Contoh: "pengeluaran minggu ini?".';
-  if (q.metric === 'account_balance') return balanceReply_(ctx, q.account);
+  if (q.metric === 'account_balance') return balanceReply_(ctx, q.account, q.account_kind);
   if (q.metric === 'recent') return recentReply_(q.limit);
 
-  const range = periodRange_(q.period);
-  if (!range) return 'Periode custom belum didukung. Coba: hari ini, minggu ini, atau bulan ini.';
+  const range = periodRange_(q.period || 'month');
+  if (!range) return 'Periode itu belum didukung 🤖 Coba: hari ini, minggu ini, bulan ini, atau sampai sekarang.';
+
+  const kindOf = {};
+  ctx.accounts.forEach(function (a) { kindOf[a.name.toLowerCase()] = a.kind; });
+  const isTabungan = function (name) { return kindOf[String(name).toLowerCase()] === 'tabungan'; };
 
   let rows = readTransactions_().filter(function (r) { return r.date >= range.from && r.date <= range.to; });
   if (q.category) {
@@ -418,6 +465,11 @@ function answerQuery_(q, ctx) {
   const sum = { expense: 0, income: 0, saving: 0 };
   const byCat = {};
   rows.forEach(function (r) {
+    if (r.type === 'transfer') {
+      if (isTabungan(r.to_account) && !isTabungan(r.account)) sum.saving += r.amount;
+      if (isTabungan(r.account) && !isTabungan(r.to_account)) sum.saving -= r.amount;
+      return;
+    }
     if (sum[r.type] === undefined) return;
     sum[r.type] += r.amount;
     if (r.type === 'expense') byCat[r.category] = (byCat[r.category] || 0) + r.amount;
@@ -428,7 +480,7 @@ function answerQuery_(q, ctx) {
     case 'income':
       return 'Pemasukan ' + label + ': ' + rupiah_(sum.income);
     case 'saving':
-      return 'Tabungan ' + label + ': ' + rupiah_(sum.saving);
+      return 'Ditabung ' + label + ': ' + rupiah_(sum.saving) + '\n(nabung + transfer bersih ke akun tabungan)';
     case 'balance':
       return 'Sisa kas ' + label + ': ' + rupiah_(sum.income - sum.expense - sum.saving) +
         '\n(pemasukan ' + rupiah_(sum.income) + ', pengeluaran ' + rupiah_(sum.expense) +

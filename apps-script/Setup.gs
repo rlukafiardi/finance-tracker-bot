@@ -34,11 +34,15 @@ function setup() {
     cat.appendRow(['saving', 'Lainnya']);
   }
 
-  // accounts: add the current_balance column (a live formula) to any row that does not have it yet.
+  // accounts: add current_balance (a live formula) and kind (guessed from the name) where missing.
   const acc = accountsSheet_();
   if (!acc.getRange(1, 3).getValue()) acc.getRange(1, 3).setValue('current_balance');
+  if (!acc.getRange(1, 4).getValue()) acc.getRange(1, 4).setValue('kind');
   for (let r = 2; r <= acc.getLastRow(); r++) {
-    if (acc.getRange(r, 1).getValue() && !acc.getRange(r, 3).getFormula()) acc.getRange(r, 3).setFormula(balanceFormula_(r));
+    const name = acc.getRange(r, 1).getValue();
+    if (!name) continue;
+    if (!acc.getRange(r, 3).getFormula()) acc.getRange(r, 3).setFormula(balanceFormula_(r));
+    if (!acc.getRange(r, 4).getValue()) acc.getRange(r, 4).setValue(guessKind_(name));
   }
   acc.getRange('B:C').setNumberFormat('#,##0');
 
