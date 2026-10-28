@@ -15,9 +15,11 @@ function telegram_(method, payload) {
   return body.result;
 }
 
+// to = { chatId, threadId }; threadId keeps the reply inside the forum topic the message came from.
 // buttons: optional single row of inline buttons [{ text, callback_data }]. Returns the message id.
-function sendMessage_(chatId, text, buttons) {
-  const payload = { chat_id: chatId, text: text };
+function sendMessage_(to, text, buttons) {
+  const payload = { chat_id: to.chatId, text: text };
+  if (to.threadId) payload.message_thread_id = to.threadId;
   if (buttons) payload.reply_markup = { inline_keyboard: [buttons] };
   const result = telegram_('sendMessage', payload);
   return result ? result.message_id : null;

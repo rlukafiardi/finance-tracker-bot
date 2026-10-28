@@ -49,14 +49,28 @@ function isDuplicate_(updateId) {
   return false;
 }
 
-// Shared by the webhook and polling. Only my own chat is answered.
+function idList_(value) {
+  return String(value || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+}
+
+// ALLOWED_USER_ID is me. Before groups, ALLOWED_CHAT_ID was my private chat, whose id equals my user id.
+function ownerId_() {
+  const explicit = optionalProp_('ALLOWED_USER_ID').trim();
+  if (explicit) return explicit;
+  return idList_(prop_('ALLOWED_CHAT_ID')).find(function (id) { return id.charAt(0) !== '-'; }) || '';
+}
+
+// Shared by the webhook and polling. Only I am answered, only in ALLOWED_CHAT_ID (comma-separated: private chat
+// and/or group), and in a group only inside FINANCE_TOPIC_ID when it is set. /whereami answers me anywhere.
 function handleUpdate_(update) {
-  const allowed = prop_('ALLOWED_CHAT_ID').trim();
+  const owner = ownerId_();
+  const chats = idList_(prop_('ALLOWED_CHAT_ID'));
+  const topic = optionalProp_('FINANCE_TOPIC_ID').trim();
 
   const cb = update.callback_query;
   if (cb) {
-    if (!cb.message || String(cb.message.chat.id) !== allowed) {
-      console.log('Ignored: button tap from another chat');
+    if (!cb.message || String(cb.from.id) !== owner || chats.indexOf(String(cb.message.chat.id)) < 0) {
+      console.log('Ignored: button tap from another user or chat');
       return;
     }
     console.log('Handling button ' + update.update_id);
@@ -69,23 +83,47 @@ function handleUpdate_(update) {
   }
 
   const msg = update.message;
-  if (!msg || !msg.text) {
+  if (!msg || !msg.text || !msg.from) {
     console.log('Ignored: update ' + update.update_id + ' has no text message');
     return;
   }
-  if (String(msg.chat.id) !== allowed) {
-    console.log('Ignored: chat id does not match ALLOWED_CHAT_ID');
+  if (String(msg.from.id) !== owner) {
+    console.log('Ignored: sender is not ALLOWED_USER_ID');
+    return;
+  }
+  const to = { chatId: msg.chat.id, threadId: msg.message_thread_id || null };
+  if (/^\/whereami(@\S+)?$/i.test(msg.text.trim())) {
+    sendMessage_(to, whereAmI_(msg));
+    return;
+  }
+  if (chats.indexOf(String(msg.chat.id)) < 0) {
+    console.log('Ignored: chat ' + msg.chat.type + ' is not in ALLOWED_CHAT_ID');
+    return;
+  }
+  if (msg.chat.type !== 'private' && topic && String(msg.message_thread_id || '') !== topic) {
+    console.log('Ignored: message is outside FINANCE_TOPIC_ID');
     return;
   }
   console.log('Handling update ' + update.update_id);
-  handleMessage_(msg);
+  handleMessage_(msg, to);
+}
+
+function whereAmI_(msg) {
+  return [
+    '📍 Lokasi ini',
+    'chat id: ' + msg.chat.id + ' (' + msg.chat.type + (msg.chat.title ? ', ' + msg.chat.title : '') + ')',
+    'topic id: ' + (msg.message_thread_id || '- (bukan di dalam topic)'),
+    'user id kamu: ' + msg.from.id,
+    '',
+    'Script Properties: ALLOWED_USER_ID = user id, ALLOWED_CHAT_ID = chat id (pisahkan koma untuk lebih dari satu),',
+    'FINANCE_TOPIC_ID = topic id.',
+  ].join('\n');
 }
 
 // Handlers return a string (sent as is), { reply }, or { action, preview } (sent with ✅/❌ buttons).
-function handleMessage_(msg) {
-  const chatId = msg.chat.id;
+function handleMessage_(msg, to) {
   try {
-    if (handleConfirmText_(chatId, msg.text)) return;
+    if (handleConfirmText_(to, msg.text)) return;
 
     const ctx = { cats: getCategories_(), accounts: getAccounts_() };
     let r;
@@ -109,10 +147,10 @@ function handleMessage_(msg) {
     }
 
     if (typeof r === 'string') r = { reply: r };
-    if (r.action) askConfirm_(chatId, r.action, r.preview);
-    else sendMessage_(chatId, r.reply);
+    if (r.action) askConfirm_(to, r.action, r.preview);
+    else sendMessage_(to, r.reply);
   } catch (err) {
     console.error(err && err.stack ? err.stack : err);
-    sendMessage_(chatId, '⚠️ Bip... ada error di sirkuit saya. Coba lagi sebentar ya.');
+    sendMessage_(to, '⚠️ Bip... ada error di sirkuit saya. Coba lagi sebentar ya.');
   }
 }
