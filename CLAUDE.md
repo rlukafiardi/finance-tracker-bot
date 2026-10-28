@@ -75,7 +75,7 @@ and the dashboard answers "how much did I spend / save this month".
   changes (web app deployment @6+). Logging with ✅/❌ confirmation, corrections, delete/undo, accounts with kinds
   and live balances (`current_balance` formula), budgets with warnings, summaries, robot persona.
   README documents usage, schema, config, setup and troubleshooting.
-- Not verified: `runExamples()` after the account-kinds prompt change (26 cases).
+- `runExamples()` not re-run after the account-kinds prompt change (26 cases): skipped by my choice, live use works.
 - Feature backlog, in priority order: scheduled daily/weekly summary via time trigger;
   receipt photos and voice notes via Gemini multimodal; recurring entries; savings goals; spending alerts;
   monthly Sheet backup. WhatsApp Cloud API is parked as a possible second channel.
