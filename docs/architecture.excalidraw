@@ -231,7 +231,20 @@
    "version": 1,
    "versionNonce": 1701494131,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e24"
+    },
+    {
+     "type": "arrow",
+     "id": "e25"
+    },
+    {
+     "type": "arrow",
+     "id": "e26"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -338,7 +351,16 @@
    "version": 1,
    "versionNonce": 153127526,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e24"
+    },
+    {
+     "type": "arrow",
+     "id": "e29"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -445,7 +467,16 @@
    "version": 1,
    "versionNonce": 1892066745,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e25"
+    },
+    {
+     "type": "arrow",
+     "id": "e27"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -552,7 +583,16 @@
    "version": 1,
    "versionNonce": 365023968,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e26"
+    },
+    {
+     "type": "arrow",
+     "id": "e85"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -686,7 +726,12 @@
    "version": 1,
    "versionNonce": 1241417137,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e27"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -890,11 +935,33 @@
      -67
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e6",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e9",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e25",
@@ -932,11 +999,33 @@
      0
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e6",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e12",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e26",
@@ -982,11 +1071,33 @@
      67
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e6",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e15",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e27",
@@ -1024,11 +1135,33 @@
      0
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e12",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e19",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e28",
@@ -1110,11 +1243,33 @@
      160
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e9",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e37",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e30",
@@ -1391,7 +1546,12 @@
    "version": 1,
    "versionNonce": 809109427,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e29"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -1498,7 +1658,12 @@
    "version": 1,
    "versionNonce": 500398016,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e107"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -1674,7 +1839,12 @@
    "version": 1,
    "versionNonce": 1693396671,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e109"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -1808,7 +1978,12 @@
    "version": 1,
    "versionNonce": 1412852770,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e87"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -1837,7 +2012,12 @@
    "version": 1,
    "versionNonce": 1658587351,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e112"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -1950,7 +2130,20 @@
    "version": 1,
    "versionNonce": 66610958,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e85"
+    },
+    {
+     "type": "arrow",
+     "id": "e87"
+    },
+    {
+     "type": "arrow",
+     "id": "e89"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -2057,7 +2250,16 @@
    "version": 1,
    "versionNonce": 582990049,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e89"
+    },
+    {
+     "type": "arrow",
+     "id": "e91"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -2164,7 +2366,16 @@
    "version": 1,
    "versionNonce": 1071588169,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e91"
+    },
+    {
+     "type": "arrow",
+     "id": "e93"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -2269,7 +2480,24 @@
    "version": 1,
    "versionNonce": 337145536,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e93"
+    },
+    {
+     "type": "arrow",
+     "id": "e94"
+    },
+    {
+     "type": "arrow",
+     "id": "e96"
+    },
+    {
+     "type": "arrow",
+     "id": "e98"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -2338,7 +2566,16 @@
    "version": 1,
    "versionNonce": 468354452,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e94"
+    },
+    {
+     "type": "arrow",
+     "id": "e100"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -2445,7 +2682,16 @@
    "version": 1,
    "versionNonce": 1807387938,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e96"
+    },
+    {
+     "type": "arrow",
+     "id": "e101"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -2552,7 +2798,16 @@
    "version": 1,
    "versionNonce": 980954812,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e98"
+    },
+    {
+     "type": "arrow",
+     "id": "e105"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -2659,7 +2914,24 @@
    "version": 1,
    "versionNonce": 71188214,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e100"
+    },
+    {
+     "type": "arrow",
+     "id": "e101"
+    },
+    {
+     "type": "arrow",
+     "id": "e102"
+    },
+    {
+     "type": "arrow",
+     "id": "e107"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -2766,7 +3038,16 @@
    "version": 1,
    "versionNonce": 259654724,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e102"
+    },
+    {
+     "type": "arrow",
+     "id": "e104"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -2873,7 +3154,24 @@
    "version": 1,
    "versionNonce": 395962153,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e104"
+    },
+    {
+     "type": "arrow",
+     "id": "e105"
+    },
+    {
+     "type": "arrow",
+     "id": "e109"
+    },
+    {
+     "type": "arrow",
+     "id": "e111"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -2980,7 +3278,16 @@
    "version": 1,
    "versionNonce": 150669729,
    "isDeleted": false,
-   "boundElements": [],
+   "boundElements": [
+    {
+     "type": "arrow",
+     "id": "e111"
+    },
+    {
+     "type": "arrow",
+     "id": "e112"
+    }
+   ],
    "updated": 1,
    "link": null,
    "locked": false
@@ -3097,11 +3404,33 @@
      121
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e15",
+    "fixedPoint": [
+     0.5,
+     1
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e53",
+    "fixedPoint": [
+     0.5,
+     0
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e86",
@@ -3183,11 +3512,33 @@
      -150
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e49",
+    "fixedPoint": [
+     1,
+     0.10714285714285714
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e53",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e88",
@@ -3261,11 +3612,33 @@
      0
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e53",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e56",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e90",
@@ -3339,11 +3712,33 @@
      0
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e56",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e59",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e92",
@@ -3417,11 +3812,33 @@
      93
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e59",
+    "fixedPoint": [
+     0.5,
+     1
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e62",
+    "fixedPoint": [
+     0.5,
+     0
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e94",
@@ -3467,11 +3884,33 @@
      -160
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e62",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e64",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e95",
@@ -3545,11 +3984,33 @@
      0
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e62",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e67",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e97",
@@ -3627,11 +4088,33 @@
      130
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e62",
+    "fixedPoint": [
+     0.5,
+     1
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e70",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e99",
@@ -3705,11 +4188,33 @@
      0
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e64",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e73",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e101",
@@ -3755,11 +4260,33 @@
      -142
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e67",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e73",
+    "fixedPoint": [
+     0,
+     0.7571428571428571
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e102",
@@ -3797,11 +4324,33 @@
      86
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e73",
+    "fixedPoint": [
+     0.5,
+     1
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e76",
+    "fixedPoint": [
+     0.5,
+     0
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e103",
@@ -3875,11 +4424,33 @@
      86
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e76",
+    "fixedPoint": [
+     0.5,
+     1
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e79",
+    "fixedPoint": [
+     0.5,
+     0
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e105",
@@ -3917,11 +4488,33 @@
      0
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e70",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e79",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e106",
@@ -3995,11 +4588,33 @@
      0
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e73",
+    "fixedPoint": [
+     1,
+     0.4714285714285714
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e40",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e108",
@@ -4073,11 +4688,33 @@
      0
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e79",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e45",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e110",
@@ -4155,11 +4792,33 @@
      113
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e79",
+    "fixedPoint": [
+     0.5,
+     1
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e82",
+    "fixedPoint": [
+     1,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e112",
@@ -4201,11 +4860,33 @@
      -294
     ]
    ],
-   "startBinding": null,
-   "endBinding": null,
+   "startBinding": {
+    "elementId": "e82",
+    "fixedPoint": [
+     0,
+     0.5
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
+   "endBinding": {
+    "elementId": "e50",
+    "fixedPoint": [
+     0.5,
+     0.1
+    ],
+    "mode": "orbit",
+    "focus": 0,
+    "gap": 2
+   },
    "startArrowhead": null,
    "endArrowhead": "triangle",
-   "lastCommittedPoint": null
+   "lastCommittedPoint": null,
+   "elbowed": true,
+   "fixedSegments": null,
+   "startIsSpecial": null,
+   "endIsSpecial": null
   },
   {
    "id": "e113",
