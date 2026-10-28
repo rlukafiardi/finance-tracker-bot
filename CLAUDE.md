@@ -86,6 +86,10 @@ and the dashboard answers "how much did I spend / save this month".
 - 2026-10-28: "Ditabung" redefined as income − expense (sumRows_.kept), my choice: it showed 0 because my money sits
   in bank-kind accounts and I don't log "nabung". The old measure (saving rows + net transfers into tabungan
   accounts) stays as "dipindah ke tabungan", shown only when non-zero.
+- 2026-10-28: Renamed that number "Sisa" (⚖️), because "Ditabung" read as a savings balance and confused me
+  (opening balances are not income, so sisa can be negative early in a month). "Tabungan" (🪙, no pig icon) is
+  the current balance of tabungan-kind accounts, shown on the dashboard and in the recaps. The old "sisa kas"
+  (income − expense − saving) was merged into Sisa so only one number has that name.
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in group "Radikal AI Assistant🗿" (chat -1004451166719),

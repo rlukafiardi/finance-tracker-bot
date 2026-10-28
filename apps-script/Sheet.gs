@@ -441,7 +441,7 @@ function periodRange_(period) {
 }
 
 // Totals for a set of rows, shared by questions and scheduled reports so both always agree.
-// kept ("ditabung") = income - expense: what was left over, wherever it sits.
+// kept ("sisa") = income - expense: what was kept (or overspent) in the period, wherever it sits.
 // saving = money moved to savings: saving-type rows plus net transfers into tabungan accounts; other transfers
 // only move money around.
 function sumRows_(rows, ctx) {
@@ -464,7 +464,16 @@ function sumRows_(rows, ctx) {
   return sum;
 }
 
-// Savings rate = (income - expense) / income. Balance (sisa kas) = income - expense - saving.
+// Current balance of tabungan-kind accounts (what "berapa tabunganku" answers), or null when there are none.
+function tabunganTotal_(ctx) {
+  const names = ctx.accounts.filter(function (a) { return a.kind === 'tabungan'; }).map(function (a) { return a.name; });
+  if (!names.length) return null;
+  const bal = accountBalances_(ctx);
+  return names.reduce(function (t, n) { return t + bal[n]; }, 0);
+}
+
+// Savings rate = (income - expense) / income. "Saving" and "balance" questions both answer with sisa
+// (income - expense), so there is only one number called sisa.
 // No period means this month; "sekarang"/"total"/"selama ini" arrive as period "all".
 function answerQuery_(q, ctx) {
   if (!q) return 'Pertanyaan tidak jelas. Contoh: "pengeluaran minggu ini?".';
@@ -487,12 +496,10 @@ function answerQuery_(q, ctx) {
     case 'income':
       return 'Pemasukan ' + label + ': ' + rupiah_(sum.income);
     case 'saving':
-      return 'Ditabung ' + label + ': ' + rupiah_(sum.kept) + '\n(pemasukan − pengeluaran)' +
-        (sum.saving ? '\n└ dipindah ke tabungan: ' + rupiah_(sum.saving) : '');
     case 'balance':
-      return 'Sisa kas ' + label + ': ' + rupiah_(sum.income - sum.expense - sum.saving) +
-        '\n(pemasukan ' + rupiah_(sum.income) + ', pengeluaran ' + rupiah_(sum.expense) +
-        ', tabungan ' + rupiah_(sum.saving) + ')';
+      return 'Sisa ' + label + ': ' + rupiah_(sum.kept) +
+        '\n(pemasukan ' + rupiah_(sum.income) + ' − pengeluaran ' + rupiah_(sum.expense) + ')' +
+        (sum.saving ? '\n└ dipindah ke tabungan: ' + rupiah_(sum.saving) : '');
     case 'savings_rate':
       if (sum.income <= 0) return 'Belum ada pemasukan ' + label + ', savings rate belum bisa dihitung.';
       return 'Savings rate ' + label + ': ' + ((sum.income - sum.expense) / sum.income * 100).toFixed(1) + '%' +
