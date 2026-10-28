@@ -95,6 +95,12 @@ and the dashboard answers "how much did I spend / save this month".
   "dipindah ke tabungan" line are removed; sumRows_ no longer needs ctx and ignores transfers and saving rows. The
   `tabungan` kind stays only as a label. Known gap: my October salary (25 Oct) predates the bot, so October shows
   no income and a negative Sisa; November onward is complete.
+- 2026-10-28: Dashboard redesigned BI-style (my request, pastel): fixed 16-column grid, KPI cards with month-to-date
+  deltas and sparklines, charts fed from a visible `dashboard_data` tab, in-cell SPARKLINE bars for balances and
+  budgets. True pastel series failed the dataviz validator (too light, read as gray), so pastel is in the surfaces
+  and the series are #6da7ec / #ee9468 / #55c29b (pass, contrast WARN → numbers printed everywhere). Charts start
+  at the first transaction. accountBalances_/tabunganTotal_ take an optional rows argument so the dashboard reads
+  the Sheet once.
 - 2026-10-28: Accounts can be set up by chat: Gemini intent "account" with account_setup {name, opening, kind};
   /akun and chat share prepareAccount_ (same validation and ✅/❌ preview).
 - 2026-10-28: Every slash command except /whereami also works by chat (my request): intents budget, category,
