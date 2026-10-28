@@ -48,6 +48,10 @@ Telegram with 200 itself and forwards the update to Apps Script.
 | `nabung 2jt dari bca ke bibit` | Transfer into a savings or investment account |
 | `kopi 25rb, parkir 5rb` | Two transactions from one message |
 | `tambah akun Bibit 5jt investasi` / `saldo awal BCA 10jt` / `Bibit itu investasi` | Add an account, or set its opening balance or kind (same as `/akun`) |
+| `budget makan 1,5jt` / `hapus budget makan` / `status budget?` | Set, remove, show monthly budgets (same as `/budget`) |
+| `kategori apa aja?` / `tambah kategori Hobi` | List / add categories (same as `/kategori`) |
+| `hapus transaksi a1b2c3d4` | Delete one transaction by id (same as `/hapus <id>`) |
+| `bisa apa aja?` | Help (same as `/help`) |
 | `ubah yang tadi jadi 40rb` / `salah, pakai bca` | Correct the last transaction |
 | `hapus yang tadi` | Delete everything the last message logged |
 | `pengeluaran minggu ini?` / `savings rate bulan ini?` | Summaries (today, week, month, or `sampai sekarang`) |
@@ -55,6 +59,9 @@ Telegram with 200 itself and forwards the update to Apps Script.
 | `5 transaksi terakhir` | Latest entries |
 
 Amounts understand `35rb`, `35k`, `15jt`, `1,5jt`, `2.500.000`. Dates understand `kemarin`, `senin lalu`.
+
+Every command below except `/whereami` also works as a normal chat message; the slash versions are optional
+shortcuts that skip the Gemini call.
 
 | Command | Purpose |
 |---|---|
