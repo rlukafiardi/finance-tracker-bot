@@ -11,7 +11,9 @@ function installSchedules() {
   ScriptApp.getProjectTriggers().forEach(function (t) { ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('weeklySummary').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(9).create();
   ScriptApp.newTrigger('monthlySummary').timeBased().onMonthDay(1).atHour(9).create();
-  console.log('Scheduled (WIB): weekly recap Monday 09-10h, monthly recap and backup on the 1st 09-10h.');
+  ScriptApp.newTrigger('refreshDashboard').timeBased().everyDays(1).atHour(6).create();
+  console.log('Scheduled (WIB): weekly recap Monday 09-10h, monthly recap and backup on the 1st 09-10h, ' +
+    'dashboard refresh daily 06-07h.');
 }
 
 // Reports go to the first ALLOWED_CHAT_ID (the group), inside FINANCE_TOPIC_ID.
