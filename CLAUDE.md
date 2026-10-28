@@ -112,8 +112,8 @@ and the dashboard answers "how much did I spend / save this month".
 - 2026-10-28: Admin-fee reminder (Fees.gs, my request): after a single transfer is saved (no expense in the same
   message), the reply has buttons + 1rb / 2,5rb / 6,5rb / Gratis. A tap logs the fee at once (the tap is the
   confirmation) as an expense on the source account, category Biaya Admin (fallback Lainnya), with the transfer's
-  created_at so "hapus yang tadi" removes both; a double tap is ignored. 6,5rb (online transfer) is my assumption,
-  unverified against the bank. Dashboard card sparklines show only from the second month.
+  created_at so "hapus yang tadi" removes both; a double tap is ignored. 6,5rb (online transfer) is confirmed by a BNI
+  email of 15 Aug 2026 (Rp6.500 fee on a Rp100.000 transfer). Dashboard card sparklines show only from the second month.
 
 - 2026-10-28: Account rename (my request): chat intent account with account_setup.rename_to, or `/akun <lama> jadi <baru>`.
   Shares prepareRename_ (✅/❌ preview with the number of affected transactions); the commit rewrites the accounts row
@@ -136,8 +136,8 @@ and the dashboard answers "how much did I spend / save this month".
   type, account(s) and amount within ±1 day of an existing row. Edit before approving by number (`correction.item`).
   Email text is never stored (`raw_message` = "email").
 - 2026-10-28: Audit of 90 days of mail (105 checked): 90 parsed, the rest were other templates, all reported and none
-  wrongly parsed. Added parsers for BNI Virtual Account, PLN token, `Transfer berhasil!`, `Kode tarik tunai` and BCA
-  transfers. A transfer is "mine" when the recipient name equals the account holder's name; otherwise an expense with
+  wrongly parsed. Added parsers for BNI Virtual Account, PLN token, `Transfer berhasil!` and BCA
+  transfers. `Kode tarik tunai` emails are not imported (my call: the code may go unused, I type withdrawals myself). A transfer is "mine" when the recipient name equals the account holder's name; otherwise an expense with
   category Lainnya set by the parser, so third-party names never reach Gemini. DANA top-ups have no fee; ShopeePay
   (500) and OVO (1.000) deduct it inside the wallet, so `WALLET_DEDUCTED_FEES` adds it on the wallet account.
   `auditEmails()` / `dumpFailedSamples()` in Gmail.gs re-check parsers against old mail.

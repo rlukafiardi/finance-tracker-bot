@@ -160,14 +160,8 @@ const EMAIL_FIXTURES = {
   bniTransferOther: [
     'Transfer berhasil! ', 'Hai, TEST USER',
     ' Terima kasih sudah bertransaksi dengan wondr by BNI! Kamu baru aja transfer uang dengan detail sebagai berikut:',
-    ' Penerima ', ' ANDI TEST ', ' Mandiri • 25*****79 ', ' Sumber dana ', ' TEST USER ', ' TAPLUS • *******002 ',
+    ' Penerima ', ' ANDI TEST - ', ' Mandiri • 25*****79 ', ' Sumber dana ', ' TEST USER ', ' TAPLUS • *******002 ',
     ' Tanggal 27-Okt-2026 ', ' Waktu 16:53:40 WIB ', ' Nominal Rp50.000 ', ' Biaya admin Rp2.500 ', ' Total Rp52.500 ',
-  ].join('\n'),
-  bniCash: [
-    'Kode tarik tunai siap digunakan! ', 'Hai, TEST USER',
-    ' Kamu berhasil melakukan pembuatan kode transaksi tarik tunai.', ' Kode transaksi ', ' 000 000 000 ',
-    ' Rekening sumber ', ' TEST USER ', ' TAPLUS • *******002 ', ' Tanggal 01 Oktober 2026 ', ' Waktu 08:04:37 WIB ',
-    ' Jenis transaksi Tarik Tunai ', ' Nominal Rp100.000 ', ' Biaya transaksi Rp0 ', ' Total Rp100.000 ',
   ].join('\n'),
   bcaTransferOwn: [
     'Hello TEST USER,', ' You just made a transaction through myBCA.', ' Status ', ' : ', ' Successful ',
@@ -213,15 +207,14 @@ function runEmailTests() {
     ['BNI', 'bniVa', { txs: [{ date: '2026-10-09', amount: 408028, type: 'expense', account: 'BNI', merchant: 'Shopee' }] }],
     ['BNI', 'bniTransferOwn', { txs: [{ date: '2026-10-27', amount: 700000, type: 'transfer', account: 'BNI', to_account: 'BCA' }] }],
     ['BNI', 'bniTransferOther', { txs: [
-      { date: '2026-10-27', amount: 50000, type: 'expense', account: 'BNI', merchant: 'ANDI TEST', category: 'Lainnya' },
+      { date: '2026-10-27', amount: 50000, type: 'expense', account: 'BNI', merchant: 'ANDI TEST', person: true },
       { date: '2026-10-27', amount: 2500, type: 'expense', account: 'BNI', category: 'Biaya Admin' },
     ] }],
-    ['BNI', 'bniCash', { txs: [{ date: '2026-10-01', amount: 100000, type: 'transfer', account: 'BNI', to_account: 'Cash' }] }],
     ['BCA', 'bcaTransferOwn', { txs: [
       { date: '2026-10-08', amount: 900000, type: 'transfer', account: 'BCA', to_account: 'BNI' },
       { date: '2026-10-08', amount: 2500, type: 'expense', account: 'BCA', category: 'Biaya Admin' },
     ] }],
-    ['BCA', 'bcaTransferOther', { txs: [{ date: '2026-10-08', amount: 50000, type: 'expense', account: 'BCA', merchant: 'ANDI TEST', category: 'Lainnya' }] }],
+    ['BCA', 'bcaTransferOther', { txs: [{ date: '2026-10-08', amount: 50000, type: 'expense', account: 'BCA', merchant: 'ANDI TEST', person: true }] }],
     ['BNI', 'bniOther', { error: 'belum didukung (transfer ke rekening lain)' }],
     ['BCA', 'bcaQris', { txs: [{ date: '2026-10-23', amount: 330000, type: 'expense', account: 'BCA', merchant: 'Social Brew Coffee' }] }],
     ['BCA', 'bcaTransfer', { error: 'belum didukung (Transfer to BCA Account)' }],
