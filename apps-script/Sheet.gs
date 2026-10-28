@@ -370,14 +370,14 @@ function recentReply_(n) {
 
 // Balance = opening balance + income - expense - saving, with transfers moving money between accounts.
 // Only accounts listed in the accounts tab are tracked; rows without an account do not affect any balance.
-function accountBalances_(ctx) {
+function accountBalances_(ctx, rows) {
   const bal = {};
   ctx.accounts.forEach(function (a) { bal[a.name] = a.opening; });
   const move = function (name, delta) {
     const key = matchAccount_(name, ctx.accounts);
     if (key) bal[key] += delta;
   };
-  readTransactions_().forEach(function (r) {
+  (rows || readTransactions_()).forEach(function (r) {
     if (r.type === 'income') {
       move(r.account, r.amount);
     } else if (r.type === 'expense' || r.type === 'saving') {
@@ -466,11 +466,11 @@ function tabunganAccounts_(ctx) {
   return ctx.accounts.filter(function (a) { return NOT_TABUNGAN.indexOf(a.kind) < 0; });
 }
 
-// Current Tabungan total, or null when there are no such accounts.
-function tabunganTotal_(ctx) {
+// Tabungan total (as of the given rows, default all), or null when there are no such accounts.
+function tabunganTotal_(ctx, rows) {
   const accounts = tabunganAccounts_(ctx);
   if (!accounts.length) return null;
-  const bal = accountBalances_(ctx);
+  const bal = accountBalances_(ctx, rows);
   return accounts.reduce(function (t, a) { return t + bal[a.name]; }, 0);
 }
 
