@@ -293,11 +293,14 @@ function newCategoryFor_(tx, ctx) {
     ? { type: tx.type, label: tx.category } : null;
 }
 
-// "ubah jadi parkir motor" while a log preview is still waiting edits the last transaction of that preview, so
-// there is no need to cancel first. A category that does not exist yet is created when the log is confirmed.
+// "ubah jadi parkir motor" while a log preview is still waiting edits the last transaction of that preview (or
+// "no 2" of an email batch, corr.item), so there is no need to cancel first. A category that does not exist yet
+// is created when the preview is confirmed.
 function prepareEditPending_(pending, corr, ctx) {
   const a = JSON.parse(JSON.stringify(pending.action));
-  const next = Object.assign({}, a.txs[a.txs.length - 1]);
+  const item = corr && Number.isInteger(corr.item) ? corr.item : a.txs.length;
+  if (item < 1 || item > a.txs.length) return { reply: 'Nomor ' + item + ' tidak ada, pilih 1-' + a.txs.length + ' 🤔' };
+  const next = Object.assign({}, a.txs[item - 1]);
   let changed = false;
   ['amount', 'type', 'date', 'account'].forEach(function (k) {
     if (corr && corr[k] !== null && corr[k] !== undefined && corr[k] !== '') {
@@ -316,9 +319,13 @@ function prepareEditPending_(pending, corr, ctx) {
   const n = normalizeTx_(next, ctx);
   if (n.error) return { reply: '🤖 Koreksi gagal (' + n.error + ').' };
   if (label && n.tx.type !== 'transfer') n.tx.category = label;
-  a.txs[a.txs.length - 1] = n.tx;
+  a.txs[item - 1] = n.tx;
 
-  a.newCategory = newCategoryFor_(a.txs[a.txs.length - 1], ctx);
+  const newCategories = a.txs.map(function (t) { return newCategoryFor_(t, ctx); }).filter(function (c, i, all) {
+    return c && all.findIndex(function (d) { return d && d.type === c.type && d.label === c.label; }) === i;
+  });
+  if (a.kind === 'emails') a.newCategories = newCategories;
+  else a.newCategory = newCategories[0] || null;
   a.newAccounts = [];
   a.txs.forEach(function (t) {
     [t.account, t.to_account].forEach(function (name) {
@@ -326,7 +333,48 @@ function prepareEditPending_(pending, corr, ctx) {
           !a.newAccounts.some(function (x) { return x.toLowerCase() === name.toLowerCase(); })) a.newAccounts.push(name);
     });
   });
-  return { action: a, preview: logPreview_(a) };
+  return { action: a, preview: a.kind === 'emails' ? emailBatchPreview_(a) : logPreview_(a) };
+}
+
+function sameName_(a, b) {
+  return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+}
+
+// An email transaction that is already in the sheet: same type, account(s) and amount within a day of the email date.
+function isDuplicateTx_(tx, rows) {
+  const day = Date.parse(tx.date + 'T00:00:00Z');
+  return rows.some(function (r) {
+    return r.type === tx.type && r.amount === tx.amount && sameName_(r.account, tx.account) &&
+      (tx.type !== 'transfer' || sameName_(r.to_account, tx.to_account)) &&
+      Math.abs(Date.parse(r.date + 'T00:00:00Z') - day) <= 86400000;
+  });
+}
+
+// Most used category of earlier expenses at the same merchant (Lainnya does not count), or null.
+function lookupMerchantCategory_(merchant, rows) {
+  const counts = {};
+  rows.forEach(function (r) {
+    if (r.type === 'expense' && r.category !== 'Lainnya' && r.merchant && sameName_(r.merchant, merchant)) {
+      counts[r.category] = (counts[r.category] || 0) + 1;
+    }
+  });
+  const names = Object.keys(counts).sort(function (x, y) { return counts[y] - counts[x]; });
+  return names.length ? names[0] : null;
+}
+
+function emailBatchPreview_(a) {
+  return '📧 ' + a.emailIds.length + ' email bank baru, catat ' + a.txs.length + ' transaksi?\n\n' +
+    a.txs.map(function (t, i) { return (i + 1) + '. ' + describe_(t); }).join('\n') +
+    newAccountsNote_(a.newAccounts) + (a.newCategories || []).map(newCategoryNote_).join('') +
+    (a.notes ? '\n\n' + a.notes : '') + '\n\n✏️ Ubah sebelum simpan, mis. "ubah no 2 jadi parkir motor".';
+}
+
+// Saves the approved batch like a typed log (budget warnings included); raw_message is only "email", never the body.
+function commitEmails_(a) {
+  (a.newCategories || []).forEach(commitCategory_);
+  const result = commitLog_({ txs: a.txs, raw: 'email', newAccounts: a.newAccounts });
+  settleEmails_(a, 'saved');
+  return result;
 }
 
 // A plain "nabung 2jt" leaves the tracked accounts; naming the savings account keeps the money visible.

@@ -35,7 +35,11 @@ const HELP_TEXT = [
   '› budget makan 1,5jt · hapus budget makan · status budget?',
   '› kategori apa aja? · tambah kategori Hobi',
   '',
-  '⌨️ Jalan pintas (opsional): /saldo /akun /budget /kategori /terakhir /hapus',
+  '📧 EMAIL BANK',
+  '› cek email (atau /email): transaksi baru dari email BNI/BCA, simpan setelah kamu setuju',
+  '  (otomatis juga tiap pagi · ubah dulu dengan "ubah no 2 jadi parkir motor")',
+  '',
+  '⌨️ Jalan pintas (opsional): /saldo /akun /budget /kategori /terakhir /hapus /email',
   '/whereami: id chat & topic (untuk setup)',
   '',
   '🛡️ Semua yang mengubah data minta konfirmasi ✅/❌ dulu (atau ketik "ya"/"batal").',
@@ -84,6 +88,8 @@ function handleCommand_(text, ctx) {
       return categoryCommand_(args, ctx);
     case '/budget':
       return budgetCommand_(args, ctx);
+    case '/email':
+      return prepareEmailImport_(ctx);
     case '/terakhir':
       return recentReply_(args[0]);
     case '/hapus':
