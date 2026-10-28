@@ -30,9 +30,18 @@ d.arrow([(242, 125), (266, 125), (266, 192), (288, 192)])
 d.arrow([(492, 125), (558, 125)], 'save', at=(508, 108))
 d.arrow([(492, 58), (1510, 58), (1510, 218), (1558, 218)], 'rebuild dashboard tab', at=(800, 40))
 
+# Bank email import: Gmail (read-only) -> parse, dedupe, category -> batch preview in the chat flow
+d.box(980, 60, 190, 56, 'service', 'GMAIL', 'BNI · BCA notifications')
+d.box(1230, 150, 200, 56, 'code', 'EMAIL IMPORT', 'parse · dedupe · category')
+d.arrow([(1172, 88), (1195, 88), (1195, 165), (1228, 165)], 'read-only', at=(1128, 126), style='dotted')
+d.arrow([(145, 155), (145, 240), (1210, 240), (1210, 191), (1228, 191)], 'email · daily 09 · /email', at=(700, 222))
+d.arrow([(1390, 208), (1390, 343)], 'batch preview', at=(1290, 262))
+d.arrow([(1432, 185), (1470, 185), (1470, 298), (1558, 298)], 'handled ids', at=(1474, 304), style='dotted')
+
 # The Sheet spans both lanes, its tabs inside
 d.cylinder(1540, 110, 240, 680, 'store', title='Google Sheet')
 d.box(1560, 190, 200, 56, 'output', 'dashboard', 'KPI cards · charts · bars')
+d.box(1560, 270, 200, 56, 'plain', 'email_log', 'handled bank emails')
 d.box(1560, 350, 200, 56, 'plain', 'categories · budgets')
 d.box(1560, 511, 200, 56, 'plain', 'accounts', 'live balance formula')
 d.box(1560, 672, 200, 56, 'plain', 'transactions', 'one row per entry')
