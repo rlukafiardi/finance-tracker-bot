@@ -6,7 +6,8 @@
     "check": "f=\"${TMPDIR:-/tmp}/gas-check.js\"; cat apps-script/*.gs > \"$f\" && node --check \"$f\" && echo \"Syntax OK\"",
     "login": "clasp --auth .clasp-auth/.clasprc.json login",
     "status": "clasp --auth .clasp-auth/.clasprc.json show-file-status",
-    "push": "npm run check && clasp --auth .clasp-auth/.clasprc.json push --force"
+    "push": "npm run check && clasp --auth .clasp-auth/.clasprc.json push --force",
+    "deploy": "npm run push && clasp --auth .clasp-auth/.clasprc.json deploy -i AKfycbzeRalkgF-LMlpnPoqzNUIE7pd3m12WHWjQhY2hS-g1fFwmsBGpozGB85nIJov2ENFzsA -d \"npm run deploy\""
   },
   "repository": {
     "type": "git",

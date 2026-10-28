@@ -36,6 +36,8 @@ Code is pushed with Google's clasp, installed in this project (not globally). Lo
 - One-time: turn on the Apps Script API at https://script.google.com/home/usersettings (personal account),
   run `npm install`, `npm run login` (pick rlukafiardi@gmail.com), and put the Script ID in `.clasp.json`.
 - Every change: `npm run push` (syntax check, then upload). In polling mode it is live immediately.
+- Webhook mode runs the deployed version, so use `npm run deploy` instead: push, new version, and redeploy the
+  existing web app deployment (same `/exec` URL).
 - Do not edit code in the browser editor: the next push overwrites it.
 
 ## Setup (first time, copy-paste)
