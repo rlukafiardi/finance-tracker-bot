@@ -110,6 +110,9 @@ and the dashboard answers "how much did I spend / save this month".
   README documents usage, schema, config, setup and troubleshooting.
 - 2026-10-28: chat intents (account, budget, category, help, delete by id), the dashboard tab and the daily
   refresh schedule checked by me in live use.
-- Feature backlog, in priority order: receipt photos and voice notes via Gemini multimodal; recurring entries;
-  savings goals. WhatsApp Cloud API is parked as a possible second channel.
+- Feature backlog (my picks, not scheduled): spending lookups by merchant or account ("berapa total gofood bulan
+  ini?", currently only by category); edit older entries by id (correct works only on the last transaction);
+  recurring entries; receipt photos and voice notes via Gemini multimodal; savings goals. Other ideas I
+  liked less: runway and forecast, net worth, debts and split bills, bill reminders, duplicate and large-expense
+  warnings, streaks, monthly PDF. WhatsApp Cloud API is parked as a possible second channel.
 - Next: IDX technical analysis as its own project in another topic, with topic routing added to `relay/worker.js`.
