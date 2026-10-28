@@ -5,7 +5,7 @@ const ACCOUNT_KINDS = ['bank', 'ewallet', 'cash', 'tabungan', 'investasi', 'lain
 
 const KIND_LABEL = {
   bank: '🏦 Bank', ewallet: '📱 E-wallet', cash: '💵 Cash',
-  tabungan: '🐷 Tabungan', investasi: '📈 Investasi', lainnya: '📦 Lainnya',
+  tabungan: '🪙 Tabungan', investasi: '📈 Investasi', lainnya: '📦 Lainnya',
 };
 
 const KIND_ALIASES = {

@@ -63,9 +63,15 @@ function topCats_(byCat, n) {
 function totalsLines_(s, topN) {
   const lines = ['💸 Pengeluaran: ' + rupiah_(s.expense)];
   if (s.expense) lines.push('└ ' + topCats_(s.byCat, topN));
-  lines.push('💰 Pemasukan: ' + rupiah_(s.income), '🏦 Ditabung: ' + rupiah_(s.kept));
+  lines.push('💰 Pemasukan: ' + rupiah_(s.income), '⚖️ Sisa: ' + rupiah_(s.kept));
   if (s.saving) lines.push('└ dipindah ke tabungan: ' + rupiah_(s.saving));
   return lines;
+}
+
+// The current tabungan balance as a one-line array, empty when there are no tabungan accounts.
+function tabunganLine_(ctx) {
+  const total = tabunganTotal_(ctx);
+  return total === null ? [] : ['🪙 Tabungan sekarang: ' + rupiah_(total)];
 }
 
 function weeklySummary() {
@@ -75,7 +81,7 @@ function weeklySummary() {
   const s = sumRows_(between_(all, week), ctx);
 
   const lines = ['📅 Rekap minggu lalu (' + week.from + ' s/d ' + week.to + ')', '']
-    .concat(totalsLines_(s, 3), ['', spendingAlert_(s, pastPeriods_(all, ctx, week, 4, prevWeek_), 'minggu')]);
+    .concat(totalsLines_(s, 3), tabunganLine_(ctx), ['', spendingAlert_(s, pastPeriods_(all, ctx, week, 4, prevWeek_), 'minggu')]);
   if (getBudgets_().length) lines.push('', '🎯 ' + budgetOverview_());
   sendMessage_(reportTarget_(), lines.join('\n'));
 }
@@ -88,7 +94,7 @@ function monthlySummary() {
   const s = sumRows_(between_(all, month), ctx);
   const title = MONTHS_ID[Number(month.from.slice(5, 7)) - 1] + ' ' + month.from.slice(0, 4);
 
-  const lines = ['📆 Rekap bulan ' + title, ''].concat(totalsLines_(s, 5));
+  const lines = ['📆 Rekap bulan ' + title, ''].concat(totalsLines_(s, 5), tabunganLine_(ctx));
   if (s.income > 0) lines.push('📈 Savings rate: ' + ((s.income - s.expense) / s.income * 100).toFixed(1) + '%');
   lines.push('', spendingAlert_(s, pastPeriods_(all, ctx, month, 3, prevMonth_), 'bulan'));
 

@@ -7,7 +7,7 @@ const DASH = 'dashboard';
 // Validated categorical slots 1-3 (dataviz palette check). Spending is always orange, in every chart.
 const COLOR_INCOME = '#2a78d6';
 const COLOR_EXPENSE = '#eb6834';
-const COLOR_SAVING = '#1baf7a';
+const COLOR_SISA = '#1baf7a';
 const MUTED = '#898781';
 const SECTION_ROWS = 18; // a chart is ~16 rows tall; sections never start closer than this
 
@@ -45,13 +45,15 @@ function dashboardData_(all, ctx, today, weekStart, budgets) {
     return ACCOUNT_KINDS.indexOf(a.kind) - ACCOUNT_KINDS.indexOf(b.kind) || a.name.localeCompare(b.name);
   }).map(function (a) { return [a.name, KIND_LABEL[a.kind] || a.kind, bal[a.name]]; });
   const total = accounts.reduce(function (t, r) { return t + r[2]; }, 0);
+  const tabungan = tabunganTotal_(ctx);
 
   return {
     kpis: [
       ['Pengeluaran bulan ini', cur.expense, '#,##0'],
       ['Pemasukan bulan ini', cur.income, '#,##0'],
-      ['Ditabung bulan ini', cur.kept, '#,##0'],
+      ['Sisa bulan ini', cur.kept, '#,##0'],
       ['Savings rate bulan ini', cur.income > 0 ? (cur.income - cur.expense) / cur.income : '-', '0.0%'],
+      ['Tabungan (akun tabungan)', tabungan === null ? '-' : tabungan, '#,##0'],
       ['Total saldo akun', total, '#,##0'],
     ],
     trend: trend, cats: cats, weekly: weekly, accounts: accounts, total: total,
@@ -78,10 +80,10 @@ function refreshDashboard() {
   });
 
   let row = 7;
-  row = section_(sh, row, 'Tren 12 bulan', ['Bulan', 'Pemasukan', 'Pengeluaran', 'Ditabung', 'Savings rate'],
+  row = section_(sh, row, 'Tren 12 bulan', ['Bulan', 'Pemasukan', 'Pengeluaran', 'Sisa', 'Savings rate'],
     d.trend, ['@', '#,##0', '#,##0', '#,##0', '0.0%'], function (range) {
       return chart_(sh, Charts.ChartType.COLUMN, range.offset(0, 0, range.getNumRows(), 4),
-        'Pemasukan, pengeluaran dan tabungan per bulan', [COLOR_INCOME, COLOR_EXPENSE, COLOR_SAVING], true);
+        'Pemasukan, pengeluaran dan sisa per bulan', [COLOR_INCOME, COLOR_EXPENSE, COLOR_SISA], true);
     });
   row = section_(sh, row, 'Pengeluaran per kategori, bulan ini', ['Kategori', 'Pengeluaran', 'Budget', '% budget'],
     d.cats, ['@', '#,##0', '#,##0', '0%'], function (range) {
