@@ -127,8 +127,19 @@ function handleMessage_(msg, to) {
         const a = parsed.account_setup || {};
         const opening = Number.isInteger(a.opening) && a.opening >= 0 ? a.opening : null;
         r = prepareAccount_(String(a.name || '').trim(), opening, parseKind_(a.kind), ctx);
+      } else if (parsed.intent === 'budget') {
+        const b = parsed.budget_setup || {};
+        r = b.category && Number.isInteger(b.limit) && b.limit >= 0
+          ? prepareBudget_(String(b.category).trim(), b.limit, ctx)
+          : '📊 ' + budgetOverview_();
+      } else if (parsed.intent === 'category') {
+        const c = parsed.category_setup || {};
+        r = c.name ? prepareCategory_(TYPES.indexOf(c.type) >= 0 ? c.type : 'expense', String(c.name).trim(), ctx)
+          : categoryList_(ctx);
+      } else if (parsed.intent === 'help') {
+        r = HELP_TEXT;
       } else if (parsed.intent === 'delete') {
-        r = prepareDeleteLast_();
+        r = parsed.delete_id ? prepareDeleteById_(String(parsed.delete_id).replace(/^#/, '')) : prepareDeleteLast_();
       } else if (parsed.intent === 'correct') {
         r = prepareCorrect_(parsed.correction, ctx);
       } else if (parsed.intent === 'query') {

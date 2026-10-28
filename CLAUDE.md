@@ -92,6 +92,9 @@ and the dashboard answers "how much did I spend / save this month".
   (income − expense − saving) was merged into Sisa so only one number has that name.
 - 2026-10-28: Accounts can be set up by chat: Gemini intent "account" with account_setup {name, opening, kind};
   /akun and chat share prepareAccount_ (same validation and ✅/❌ preview).
+- 2026-10-28: Every slash command except /whereami also works by chat (my request): intents budget, category,
+  help, and delete_id for delete-by-id; each shares a prepare*_ function with its command. Slash commands stay as
+  optional shortcuts (no Gemini call).
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in group "Radikal AI Assistant🗿" (chat -1004451166719),

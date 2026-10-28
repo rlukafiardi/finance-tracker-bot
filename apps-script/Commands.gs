@@ -2,41 +2,36 @@
 // Commands that change data return { action, preview } and wait for ✅/❌ (see Confirm.gs).
 
 const HELP_TEXT = [
-  '🤖 BEEP BOOP. Finance Bot v1.1 online.',
-  'Ketik bebas, saya yang mencatat. 💸',
+  '🤖 BEEP BOOP. Finance Bot v1.2 online.',
+  'Ketik bebas, saya yang mengerti. 💸',
   '',
   '📝 CATAT',
   '› makan siang 35rb gofood',
   '› gaji 15jt masuk bca',
-  '› nabung 2jt',
   '› tap lrt 17k pake gopay',
   '› top up gopay pake bni 200k',
   '› nabung 2jt dari bca ke bibit',
-  '› tambah akun Bibit 5jt investasi',
   '',
   '🛠 PERBAIKI',
   '› ubah yang tadi jadi 40rb',
   '› hapus yang tadi',
+  '› hapus transaksi a1b2c3d4',
   '',
   '📊 TANYA',
   '› pengeluaran minggu ini?',
   '› savings rate bulan ini?',
-  '› saldo gopay?',
+  '› saldo semua akun? · saldo gopay?',
   '› berapa tabunganku sekarang?',
-  '› investasiku berapa?',
   '› 5 transaksi terakhir',
   '',
-  '⚙️ PERINTAH',
-  '/saldo  saldo semua akun per jenis',
-  '/akun BNI 1,5jt  tambah akun / saldo awal',
-  '/akun Bibit investasi  ubah jenis akun (bank, ewallet, cash, tabungan, investasi, lainnya)',
-  '/budget makan 1,5jt  budget bulanan (0 = hapus)',
-  '/budget  status budget',
-  '/kategori  daftar kategori',
-  '/kategori expense Hobi  tambah kategori',
-  '/terakhir 10  riwayat + id',
-  '/hapus a1b2c3d4  hapus berdasarkan id',
-  '/whereami  id chat & topic (untuk setup)',
+  '⚙️ ATUR',
+  '› tambah akun Bibit 5jt investasi',
+  '› saldo awal BCA 10jt · BCA itu tabungan',
+  '› budget makan 1,5jt · hapus budget makan · status budget?',
+  '› kategori apa aja? · tambah kategori Hobi',
+  '',
+  '⌨️ Jalan pintas (opsional): /saldo /akun /budget /kategori /terakhir /hapus',
+  '/whereami: id chat & topic (untuk setup)',
   '',
   '🛡️ Semua yang mengubah data minta konfirmasi ✅/❌ dulu (atau ketik "ya"/"batal").',
   '🔋 Status: siap menghitung setiap rupiah.',
@@ -98,14 +93,18 @@ function budgetCommand_(args, ctx) {
   if (!args.length) return '📊 ' + budgetOverview_();
   const parsed = splitNameAmount_(args);
   if (parsed.amount === null) return 'Format: /budget <kategori> <jumlah per bulan>, mis. /budget makan 1,5jt';
+  return prepareBudget_(parsed.name, parsed.amount, ctx);
+}
 
-  const category = ctx.cats.expense.find(function (c) { return c.toLowerCase() === parsed.name.toLowerCase(); });
-  if (!category) return 'Kategori "' + parsed.name + '" tidak ada di expense. Lihat /kategori.';
+// Shared by /budget and chat ("budget makan 1,5jt", "hapus budget makan" = limit 0).
+function prepareBudget_(name, limit, ctx) {
+  const category = ctx.cats.expense.find(function (c) { return c.toLowerCase() === name.toLowerCase(); });
+  if (!category) return 'Kategori "' + name + '" tidak ada di expense. Coba "kategori apa aja?".';
   return {
-    action: { kind: 'budget', category: category, limit: parsed.amount },
-    preview: parsed.amount === 0
+    action: { kind: 'budget', category: category, limit: limit },
+    preview: limit === 0
       ? '🎯 Hapus budget ' + category + '?'
-      : '🎯 Atur budget ' + category + ' jadi ' + rupiah_(parsed.amount) + ' per bulan?',
+      : '🎯 Atur budget ' + category + ' jadi ' + rupiah_(limit) + ' per bulan?',
   };
 }
 
@@ -117,13 +116,20 @@ function commitBudget_(a) {
 }
 
 function categoryCommand_(args, ctx) {
-  if (!args.length) {
-    return '🏷️ Kategori:\n\n' + TYPES.map(function (t) { return t + ': ' + (ctx.cats[t].join(', ') || '-'); }).join('\n');
-  }
+  if (!args.length) return categoryList_(ctx);
   const key = args[0].toLowerCase();
-  const type = Object.prototype.hasOwnProperty.call(TYPE_ALIASES, key) ? TYPE_ALIASES[key] : null;
+  const type = hasKey_(TYPE_ALIASES, key) ? TYPE_ALIASES[key] : null;
   const name = args.slice(1).join(' ').trim();
   if (!type || !name) return 'Format: /kategori <expense|income|saving> <nama>, mis. /kategori expense Hobi';
+  return prepareCategory_(type, name, ctx);
+}
+
+function categoryList_(ctx) {
+  return '🏷️ Kategori:\n\n' + TYPES.map(function (t) { return t + ': ' + (ctx.cats[t].join(', ') || '-'); }).join('\n');
+}
+
+// Shared by /kategori and chat ("tambah kategori Hobi"); chat without a type adds an expense category.
+function prepareCategory_(type, name, ctx) {
   if (name.length > 30) return 'Nama kategori terlalu panjang (maks 30 karakter).';
   if (/^[=+\-@]/.test(name)) return 'Nama kategori tidak boleh diawali = + - atau @.';
 

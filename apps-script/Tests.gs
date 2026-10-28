@@ -31,6 +31,13 @@ const EXAMPLES = [
   { message: 'investasiku berapa?', expect: { intent: 'query', transactions: [], query: { metric: 'account_balance', account_kind: 'investasi' } } },
   { message: 'tambah akun bibit 5jt investasi', expect: { intent: 'account', transactions: [], account_setup: { name: 'Bibit', opening: 5000000, kind: 'investasi' } } },
   { message: 'saldo awal bca 10jt', expect: { intent: 'account', transactions: [], account_setup: { name: 'BCA', opening: 10000000 } } },
+  { message: 'budget makan 1,5jt', expect: { intent: 'budget', transactions: [], budget_setup: { category: 'Makan', limit: 1500000 } } },
+  { message: 'status budget bulan ini?', expect: { intent: 'budget', transactions: [], budget_setup: { limit: null } } },
+  { message: 'tambah kategori hobi', expect: { intent: 'category', transactions: [], category_setup: { name: 'Hobi' } } },
+  { message: 'kategori apa aja?', expect: { intent: 'category', transactions: [], category_setup: { name: null } } },
+  { message: 'bisa apa aja?', expect: { intent: 'help', transactions: [] } },
+  { message: 'hapus transaksi a1b2c3d4', expect: { intent: 'delete', transactions: [], delete_id: 'a1b2c3d4' } },
+  { message: 'saldo semua akun?', expect: { intent: 'query', transactions: [], query: { metric: 'account_balance' } } },
   { message: 'total pengeluaran selama ini', expect: { intent: 'query', transactions: [], query: { metric: 'spending', period: 'all' } } },
 ];
 
@@ -41,7 +48,9 @@ const EXAMPLES_ACCOUNTS = [
   { name: 'Bibit', opening: 0, kind: 'investasi' }, { name: 'Tabungan BCA', opening: 0, kind: 'tabungan' },
 ];
 
+// A missing field and null both mean "not given".
 function same_(a, b) {
+  if (a == null || b == null) return a == null && b == null;
   return String(a).toLowerCase() === String(b).toLowerCase();
 }
 
@@ -60,10 +69,15 @@ function diff_(expect, got) {
       });
     });
   }
-  ['correction', 'query', 'account_setup'].forEach(function (section) {
-    Object.keys(expect[section] || {}).forEach(function (k) {
-      const value = got[section] ? got[section][k] : undefined;
-      if (!same_(expect[section][k], value)) problems.push(section + '.' + k + ' ' + value + ' != ' + expect[section][k]);
+  Object.keys(expect).forEach(function (key) {
+    if (key === 'intent' || key === 'transactions') return;
+    if (typeof expect[key] !== 'object' || expect[key] === null) {
+      if (!same_(expect[key], got[key])) problems.push(key + ' ' + got[key] + ' != ' + expect[key]);
+      return;
+    }
+    Object.keys(expect[key]).forEach(function (k) {
+      const value = got[key] ? got[key][k] : undefined;
+      if (!same_(expect[key][k], value)) problems.push(key + '.' + k + ' ' + value + ' != ' + expect[key][k]);
     });
   });
   return problems;
