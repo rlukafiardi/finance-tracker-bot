@@ -8,11 +8,11 @@ and the dashboard answers "how much did I spend / save this month".
 
 ## Data
 - Sources: messages typed by me in Telegram (Bahasa Indonesia + English, e.g. "makan siang 35rb gofood").
-- Store: Google Sheet, tabs `transactions` and `categories`.
-- Grain: one row per transaction. Columns: `id, date, amount, type, category, account, merchant, note, raw_message, created_at`.
-- `type` is `expense | income | saving`. Savings are not expenses: savings rate = (income - expense) / income;
-  balance (sisa kas) = income - expense - saving.
-- Known quirks: none yet. Amount shorthand to handle: "35rb", "15jt", "1,5jt".
+- Store: Google Sheet, tabs `transactions`, `categories`, `accounts`, `budgets` (schema and definitions in README).
+- Grain: one row per transaction; `type` is `expense | income | saving | transfer`.
+- Known quirks: amount shorthand "35rb", "15jt", "1,5jt". clasp `--auth` must point at the .clasprc.json file, not
+  the folder (EISDIR). After changing BotFather privacy the bot must be removed and re-added to the group.
+  Apps Script webhooks always answer 302 (hence the relay). zsh in Bash: brace vars before ":" (`${c}:path`).
 
 ## Decisions
 - 2026-10-27: Project created. Telegram (not WhatsApp: no ban risk, no business verification), Gemini free tier
@@ -67,14 +67,17 @@ and the dashboard answers "how much did I spend / save this month".
   multi-item message undoes as one unit; /hapus <id> removes one row. Budgets are monthly per expense category
   (`budgets` tab); replies warn at >= 80% on every expense in that category, not only when crossing.
 
+- 2026-10-28: Back to webhook mode: Cloudflare relay set up and live, replies instant. Polling stays as fallback.
+
 ## Status
-- Works: repo (private, rlukafiardi/finance-tracker-bot), full Apps Script code written, NOT yet run or deployed.
-  Telegram bot, Gemini API key and the blank Sheet exist (created by me).
-- Known risk: Apps Script answers POSTs with a 302 redirect, which Telegram may log as a webhook error and retry.
-  Dedupe makes retries harmless, but check `webhookInfo()` after `setWebhook()`. Fallback: a free Cloudflare Worker
-  relay that forwards to Apps Script and returns 200 to Telegram.
+- Works (2026-10-28, tested by me end to end): live in group "Radikal AI Assistant🗿" (chat -1004451166719),
+  topic 💰 Finance (id 2), private chat also allowed. Webhook through the Cloudflare relay; `npm run deploy` ships
+  changes (web app deployment @6+). Logging with ✅/❌ confirmation, corrections, delete/undo, accounts with kinds
+  and live balances (`current_balance` formula), budgets with warnings, summaries, robot persona.
+  README documents usage, schema, config, setup and troubleshooting.
+- Not verified: `runExamples()` after the account-kinds prompt change (26 cases).
 - Feature backlog, in priority order: scheduled daily/weekly summary via time trigger;
   receipt photos and voice notes via Gemini multimodal; recurring entries; savings goals; spending alerts;
   monthly Sheet backup. WhatsApp Cloud API is parked as a possible second channel.
-- Next: paste code into the Sheet's Apps Script, set properties, `setup()`, `runExamples()`, deploy, `setWebhook()`,
-  test with real messages. Then the Looker Studio dashboard.
+- Next: Looker Studio dashboard on the Sheet; IDX technical analysis as its own project in another topic,
+  with topic routing added to `relay/worker.js`.

@@ -1,101 +1,194 @@
 # Finance Tracker Bot
 
-Personal finance tracker: send a message to a Telegram bot ("makan siang 35rb gofood", "gaji 15jt masuk",
-"nabung 2jt"), Gemini parses it, and a Google Apps Script web app writes it to a Google Sheet.
-Looker Studio reads the Sheet for spending, income and savings. Runs entirely on free tiers, no card, no server.
+A personal finance tracker you talk to in Telegram. Type `kopi 25rb pake gopay`, confirm with ✅, and it lands in a
+Google Sheet. Ask `pengeluaran minggu ini?` or `berapa tabunganku sekarang?` and it answers from the Sheet.
+It runs entirely on free tiers: no server, no credit card, $0 per month.
 
-## Flow
+- **Chat:** Telegram group "Radikal AI Assistant", topic 💰 Finance (other topics are reserved for future features)
+- **Brain:** Gemini (free tier) turns free text into structured transactions; all numbers come from code, not the model
+- **Backend:** Google Apps Script web app
+- **Storage:** Google Sheet (four tabs), with a live balance per account
+- **Relay:** a Cloudflare Worker in front of Apps Script, so replies are instant
 
-1. Telegram message -> webhook -> Apps Script web app (`doPost`)
-2. Checks: secret in the URL, chat id equals mine, update not seen before
-3. Gemini (free tier) returns JSON: intent (log / correct / query / other) and transactions
-4. Validate against the `categories` tab, then append to `transactions`, correct the last row, or answer a summary query
-5. Bot replies with what it did
+## How it works
 
-## Data
+```mermaid
+flowchart LR
+  U["Me in Telegram<br/>topic 💰 Finance"] -->|message or ✅/❌ tap| TG[Telegram Bot API]
+  TG -->|webhook + secret header| W[Cloudflare Worker relay]
+  W -->|"POST ?secret=…, answers Telegram 200 at once"| AS[Apps Script web app]
+  AS -->|parse free text| G[Gemini free tier]
+  AS -->|read / write| S[(Google Sheet)]
+  AS -->|preview, result| TG
+  S -.->|planned| L[Looker Studio dashboard]
+```
 
-Google Sheet with two tabs.
+1. **Access check** (`Code.gs`): only my user id, only allowed chats, and in the group only the Finance topic.
+   Everything else is ignored silently.
+2. **Routing**: a "ya"/"batal" answers a pending confirmation; `/commands` are handled in code (no Gemini call);
+   anything else goes to Gemini, which returns an intent (`log`, `correct`, `delete`, `query`, `other`),
+   the transactions, and a one-line joke (`quip`).
+3. **Validation** (`Sheet.gs`): amounts, types, categories and accounts are checked against the Sheet.
+4. **Confirmation** (`Confirm.gs`): every change shows a preview with ✅ Simpan / ❌ Batal. Nothing is written
+   until I confirm. Questions and lists answer directly.
+5. **Write and reply**: the row is written, the preview turns into the result, plus budget warnings if any.
 
-`transactions`: `id, date, amount, type, category, account, merchant, note, raw_message, created_at, to_account`
-(`type` is expense, income, saving or transfer; `to_account` is only used by transfers).
-`categories`: `type, category`. Seeded by `setup()` with the defaults in `apps-script/Setup.gs`.
-`accounts`: `account, opening_balance, current_balance, kind` (kind: bank, ewallet, cash, tabungan, investasi,
-lainnya; guessed from the name, changed with `/akun Bibit investasi`). Balance = opening balance + income - expense - saving,
-with transfers moving money between accounts. `current_balance` is a SUMIFS formula over `transactions`, so it
-updates by itself and matches `/saldo`. Unknown accounts are created automatically with opening balance 0.
-`budgets`: `category, monthly_limit` (expense categories only).
+Why the relay: Apps Script answers every webhook POST with a 302 redirect. Telegram treats that as a failed
+delivery, keeps resending the first message, and newer messages queue behind it forever. The Worker answers
+Telegram with 200 itself and forwards the update to Apps Script.
 
-## Layout
+## Using the bot
 
-- `apps-script/`: the code to paste into the Apps Script editor (one file per `.gs`)
-- `CLAUDE.md`: project notes
+| Type this | What happens |
+|---|---|
+| `makan siang 35rb gofood` | Expense, category Makan, merchant Gofood |
+| `gaji 15jt masuk bca` | Income to BCA |
+| `tap lrt 17k pake gopay` | Expense paid from GoPay |
+| `top up gopay pake bni 200k` | Transfer BNI → GoPay (not spending) |
+| `nabung 2jt dari bca ke bibit` | Transfer into a savings or investment account |
+| `kopi 25rb, parkir 5rb` | Two transactions from one message |
+| `ubah yang tadi jadi 40rb` / `salah, pakai bca` | Correct the last transaction |
+| `hapus yang tadi` | Delete everything the last message logged |
+| `pengeluaran minggu ini?` / `savings rate bulan ini?` | Summaries (today, week, month, or `sampai sekarang`) |
+| `saldo gopay?` / `berapa tabunganku sekarang?` / `investasiku?` | Current balances |
+| `5 transaksi terakhir` | Latest entries |
 
-## Updating the code (clasp)
+Amounts understand `35rb`, `35k`, `15jt`, `1,5jt`, `2.500.000`. Dates understand `kemarin`, `senin lalu`.
 
-Code is pushed with Google's clasp, installed in this project (not globally). Login token stays in `.clasp-auth/` (gitignored).
+| Command | Purpose |
+|---|---|
+| `/help` | Everything above, in the chat |
+| `/saldo` | All balances, grouped by account kind |
+| `/akun BNI 1,5jt` | Add an account or set its opening balance |
+| `/akun Bibit 5jt investasi` / `/akun Bibit investasi` | Add with a kind / change the kind |
+| `/budget makan 1,5jt` / `/budget makan 0` / `/budget` | Set, remove, show monthly budgets |
+| `/kategori` / `/kategori expense Hobi` | List / add categories |
+| `/terakhir 10` | Latest entries with their ids |
+| `/hapus a1b2c3d4` | Delete one transaction by id |
+| `/whereami` | Show chat, topic and user ids (setup) |
 
-- One-time: turn on the Apps Script API at https://script.google.com/home/usersettings (personal account),
-  run `npm install`, `npm run login` (pick rlukafiardi@gmail.com), and put the Script ID in `.clasp.json`.
-- Every change: `npm run push` (syntax check, then upload). In polling mode it is live immediately.
-- Webhook mode runs the deployed version, so use `npm run deploy` instead: push, new version, and redeploy the
-  existing web app deployment (same `/exec` URL).
-- Do not edit code in the browser editor: the next push overwrites it.
+Budget warnings appear on every expense in a category once it reaches 80% (⚠️) or 100% (🚨) of this month's limit.
 
-## Setup (first time, copy-paste)
+## Data model (Google Sheet)
 
-1. Telegram: create the bot with @BotFather and keep the token. Message the bot once, then open
-   `https://api.telegram.org/bot<TOKEN>/getUpdates` in your browser to read your numeric `chat.id`.
-2. Sheet: open it, Extensions > Apps Script. Create one file per `.gs` in `apps-script/` and paste the contents.
-   In Project Settings set the time zone to Asia/Jakarta (or paste `appsscript.json` via "Show appsscript.json").
-3. Project Settings > Script Properties, add:
+| Tab | Columns | Notes |
+|---|---|---|
+| `transactions` | `id, date, amount, type, category, account, merchant, note, raw_message, created_at, to_account` | One row per transaction. `type` is expense, income, saving or transfer. `to_account` is only for transfers. |
+| `categories` | `type, category` | The only categories Gemini may use. Edit rows or use `/kategori`. |
+| `accounts` | `account, opening_balance, current_balance, kind` | `current_balance` is a live SUMIFS formula. `kind` is bank, ewallet, cash, tabungan, investasi or lainnya, guessed from the name. |
+| `budgets` | `category, monthly_limit` | Expense categories only. |
 
-   | Property | Value |
-   |---|---|
-   | `TELEGRAM_BOT_TOKEN` | from BotFather |
-   | `GEMINI_API_KEY` | from aistudio.google.com |
-   | `GEMINI_MODEL` | optional, defaults to `gemini-3.5-flash-lite` (free: 15 RPM, 500 RPD on my project). Full Flash models only get 20 RPD, and `gemini-2.5-flash` returns 404 for new accounts. Check https://ai.dev/rate-limit for current limits |
-   | `SHEET_ID` | the id in the Sheet URL |
-   | `ALLOWED_CHAT_ID` | your `chat.id` |
-   | `WEBHOOK_SECRET` | a random string of letters and digits only (e.g. `openssl rand -hex 16`); Telegram rejects symbols |
+Definitions used everywhere (bot answers and formulas agree):
 
-4. Run `setup()` once and authorize. It creates the two tabs, headers and default categories.
-5. Run `runExamples()` and read the log: it tests the prompt against 15 sample messages without touching the Sheet.
-6. Connect Telegram, pick one:
-   - Polling (simplest, all Google): run `startPolling()`, then `checkConfig()`. Replies take up to a minute;
-     code changes only need a save. Skip steps 7-9.
-   - Webhook (replies in seconds): steps 7-9.
-7. Deploy > New deployment > Web app: execute as Me, access Anyone. Copy the `/exec` URL into a new
-   script property `WEBAPP_URL`. After later code changes use Deploy > Manage deployments > Edit > New version
-   (the URL stays the same).
-8. Relay (needed: Apps Script answers webhooks with a 302, so Telegram keeps resending the first update and
-   newer messages get stuck). On a free Cloudflare account (no card): Workers & Pages > Create > Worker, paste
-   `relay/worker.js`, Deploy. Under Settings > Variables and Secrets add two Secrets: `TELEGRAM_SECRET`
-   (= `WEBHOOK_SECRET`) and `APPS_SCRIPT_URL` (= the `/exec` URL + `?secret=` + `WEBHOOK_SECRET`).
-   Put the Worker URL (`https://<name>.<you>.workers.dev`) in the script property `RELAY_URL`.
-9. Run `setWebhook()`, then `checkConfig()`: every line should be true and the last error "none". Then message the bot.
+- **Account balance** = opening balance + income − expense − saving − transfers out + transfers in.
+- **Tabungan** = balance of accounts of kind `tabungan`. Investasi is reported separately.
+- **Ditabung (saving metric)** = `saving` rows + net transfers into tabungan accounts.
+- **Savings rate** = (income − expense) / income. Transfers are never spending or income.
+- A plain `nabung 2jt` (no destination) is type `saving`: it leaves the tracked accounts. Name the account to keep it visible.
 
-Never put tokens in the code or in git; they live only in Script Properties.
+## Repository layout
 
-## Bot commands (just type them)
+| Path | What it is |
+|---|---|
+| `apps-script/Code.gs` | Entry points (`doPost`), access rules, message routing |
+| `apps-script/Confirm.gs` | Pending action, ✅/❌ buttons, typed yes/no, dispatch to commit functions |
+| `apps-script/Sheet.gs` | Sheet access, validation, prepare/commit for log, correct, delete; balances; summaries |
+| `apps-script/Accounts.gs` | Account kinds and name-based guessing |
+| `apps-script/Budget.gs` | Budgets and warnings |
+| `apps-script/Commands.gs` | Slash commands and `/help` text |
+| `apps-script/Gemini.gs` / `Prompt.gs` | Gemini call (structured JSON, retries) and the parsing prompt |
+| `apps-script/Persona.gs` | Emoji and robot lines |
+| `apps-script/Telegram.gs` | Bot API helpers; replies stay in the topic |
+| `apps-script/Poll.gs` | Polling mode (fallback without the relay) |
+| `apps-script/Setup.gs` | `setup()`, webhook helpers, `checkConfig()` |
+| `apps-script/Tests.gs` | `runExamples()`: 26 messages with expected parses |
+| `relay/worker.js` | Cloudflare Worker relay |
+| `CLAUDE.md` | Project notes: decisions and status |
 
-- Log: "makan siang 35rb gofood", "gaji 15jt", "nabung 2jt", "kemarin grab 28k", "kopi 25rb, parkir 5rb"
-- With accounts: "tap lrt 17k pake gopay" (expense from GoPay), "top up gopay pake bni 200k" (transfer BNI -> GoPay)
-- Fix the last entry: "ubah yang tadi jadi 40rb", "salah, harusnya transport", "salah, pakai bca"
-- Ask: "pengeluaran minggu ini?", "savings rate bulan ini?", "sisa kas bulan ini?", "saldo gopay?"
-- Delete and history: "hapus yang tadi" (removes everything the latest message logged), "5 transaksi terakhir"
-- Slash commands (no Gemini call): `/help`, `/saldo`, `/akun BNI 1,5jt` (add account or set opening balance),
-  `/kategori` (list), `/kategori expense Hobi` (add category), `/budget` (status), `/budget makan 1,5jt`
-  (monthly limit, 0 removes it), `/terakhir [n]` (latest entries with id), `/hapus [id]` (latest message, or one row by id)
-- Budgets: after an expense, the reply warns when its category has used 80% or more of this month's budget.
-- Confirmation: anything that changes data shows a preview with ✅ Simpan / ❌ Batal buttons (or type "ya"/"batal").
-- Polling burst: after a message the bot stays awake for `BURST_SECONDS` (optional script property, default 120),
-  so button taps and follow-ups are answered in a second or two.
-- Optional script property `DEFAULT_ACCOUNT`: used when a message names no account.
+## Configuration
 
-## Group with topics
+Apps Script > Project Settings > Script Properties. Secrets live only here and in Cloudflare, never in git.
 
-The bot can live in a Telegram group with Topics, one topic per feature (finance is one of them).
-BotFather `/setprivacy` must be Disabled (re-add the bot afterwards) so it sees plain messages.
-Send `/whereami` in the topic to get the ids, then set Script Properties:
-`ALLOWED_USER_ID` (only this user is answered, even in the group), `ALLOWED_CHAT_ID` (comma-separated: group id,
-and the private chat id to keep that working), `FINANCE_TOPIC_ID` (other topics are ignored). Replies stay in the topic.
+| Property | Required | Value |
+|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | yes | From @BotFather |
+| `GEMINI_API_KEY` | yes | From aistudio.google.com |
+| `GEMINI_MODEL` | no | Default `gemini-3.5-flash-lite` |
+| `SHEET_ID` | yes | The id in the Sheet URL |
+| `ALLOWED_USER_ID` | yes | My Telegram user id; nobody else is answered |
+| `ALLOWED_CHAT_ID` | yes | Comma-separated chat ids (group, and private chat if wanted) |
+| `FINANCE_TOPIC_ID` | no | Only this group topic is answered |
+| `WEBHOOK_SECRET` | yes | Letters, digits, `_` or `-` only (Telegram rule), e.g. `openssl rand -hex 16` |
+| `WEBAPP_URL` | yes | The web app `/exec` URL |
+| `RELAY_URL` | webhook mode | The Worker URL |
+| `DEFAULT_ACCOUNT` | no | Account used when a message names none |
+| `BURST_SECONDS` | no | Polling mode only, default 120 |
+| `LAST_UPDATE_ID`, `PENDING` | internal | Written by the bot; do not edit |
+
+Cloudflare Worker secrets: `TELEGRAM_SECRET` (= `WEBHOOK_SECRET`) and `APPS_SCRIPT_URL`
+(= `WEBAPP_URL` + `?secret=` + `WEBHOOK_SECRET`).
+
+## Development
+
+Code lives in this repo and is uploaded with Google's clasp, installed in the project (not globally).
+The repo is the source of truth: do not edit code in the browser editor, the next push overwrites it.
+
+```bash
+npm install            # once
+npm run login          # once; pick the personal Google account. Token goes to .clasp-auth/ (gitignored)
+npm run check          # syntax check of all .gs files together (also catches duplicate globals)
+npm run deploy         # check + push + new version of the existing web app deployment (same /exec URL)
+npm run push           # check + push only (enough in polling mode)
+```
+
+One-time requirement: the Apps Script API must be on at https://script.google.com/home/usersettings.
+
+Functions to run from the Apps Script editor:
+
+| Function | When |
+|---|---|
+| `setup()` | After schema changes. Safe to re-run: adds missing tabs, headers, formulas, kinds; never overwrites rows. |
+| `runExamples()` | After prompt changes. ~2.5 min, uses ~26 Gemini requests, writes nothing. |
+| `checkConfig()` | When the bot is silent. Prints every setting check without showing secrets. |
+| `setWebhook()` / `webhookInfo()` | Point Telegram at the relay (or web app) / show delivery status. |
+| `startPolling()` / `stopPolling()` | Switch to polling mode and back. |
+
+## Setup from scratch
+
+1. **Telegram:** create a bot with @BotFather. `/setprivacy` → Disable (so it sees plain messages in groups).
+   Create a group with Topics, add a "💰 Finance" topic, add the bot and make it admin.
+2. **Google:** create a blank Sheet, then Extensions > Apps Script. Copy the Script ID into `.clasp.json`.
+   Get a Gemini API key at aistudio.google.com.
+3. **Code:** `npm install`, `npm run login`, `npm run push`.
+4. **Properties:** set the required Script Properties above.
+5. **Sheet:** run `setup()`, then `runExamples()` (expect 26/26).
+6. **Web app:** Deploy > New deployment > Web app, execute as Me, access Anyone. Put the `/exec` URL in
+   `WEBAPP_URL` and its deployment id in the `deploy` script in `package.json`.
+7. **Relay:** on a free Cloudflare account, create a Worker, paste `relay/worker.js`, add the two Worker secrets,
+   and put the Worker URL in `RELAY_URL`.
+8. **Connect:** run `setWebhook()`, then `checkConfig()`. Every check should be true and the last error "none".
+9. **Ids:** send `/whereami` in the Finance topic and set `ALLOWED_USER_ID`, `ALLOWED_CHAT_ID`, `FINANCE_TOPIC_ID`.
+
+No Cloudflare? Run `startPolling()` instead of steps 7–8: replies take up to a minute, then stay instant for
+`BURST_SECONDS` after each message.
+
+## Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| Bot is silent | `checkConfig()`. Then Executions: `doPost` (webhook) or `pollUpdates` (polling) rows show why, e.g. `Ignored: sender is not ALLOWED_USER_ID`. |
+| Silent only in the group | BotFather privacy must be Disabled, and the bot re-added to the group after changing it. Check `FINANCE_TOPIC_ID`. |
+| `Wrong response from the webhook: 302` | Telegram points at Apps Script directly. Set `RELAY_URL` and run `setWebhook()`. |
+| Worker logs show 403 | `TELEGRAM_SECRET` differs from `WEBHOOK_SECRET`. |
+| `Ignored: missing or wrong secret` | The `?secret=` in `APPS_SCRIPT_URL` differs from `WEBHOOK_SECRET`. |
+| Gemini 404 | Model retired for new accounts. Change `GEMINI_MODEL`. |
+| Gemini 429 | Free quota hit. See https://ai.dev/rate-limit; lite models have far more quota. |
+| Code change has no effect | Webhook mode runs the deployed version: use `npm run deploy`, not `push`. |
+
+## Limits and privacy
+
+- **Gemini free tier** (on my project, October 2026): `gemini-3.5-flash-lite` 15 requests/min, 500/day.
+  Free-tier prompts may be used by Google to improve its products, so never type account numbers or similar.
+- **Apps Script** (free account): about 90 min/day of trigger runtime (polling mode only) and a 6-minute limit per run.
+- **Cloudflare Workers** free plan: far above personal use.
+- Access is owner-only: other group members, other topics and other chats are ignored, including button taps.
