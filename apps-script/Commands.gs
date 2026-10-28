@@ -36,6 +36,7 @@ const HELP_TEXT = [
   '/kategori expense Hobi  tambah kategori',
   '/terakhir 10  riwayat + id',
   '/hapus a1b2c3d4  hapus berdasarkan id',
+  '/whereami  id chat & topic (untuk setup)',
   '',
   '🛡️ Semua yang mengubah data minta konfirmasi ✅/❌ dulu (atau ketik "ya"/"batal").',
   '🔋 Status: siap menghitung setiap rupiah.',

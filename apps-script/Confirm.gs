@@ -1,6 +1,7 @@
 // Every write waits for a confirmation: the bot sends a preview with ✅/❌ buttons (typing "ya"/"batal" also works).
 // One pending action at a time, kept in the PENDING script property; it expires after 15 minutes.
 // An action is plain JSON ({ kind, ... }) produced by a prepare*_ function and executed by runAction_.
+// `to` = { chatId, threadId } is where replies go (see Telegram.gs).
 
 const PENDING_TTL_MS = 15 * 60 * 1000;
 const YES_WORDS = ['ya', 'y', 'iya', 'yes', 'ok', 'oke', 'okay', 'simpan', 'gas', 'lanjut', 'betul', 'benar'];
@@ -22,59 +23,59 @@ function clearPending_() {
 }
 
 // A new preview replaces the old one; the old message loses its buttons so it cannot be tapped later.
-function closeOldPending_(chatId) {
+function closeOldPending_() {
   const raw = optionalProp_('PENDING');
   if (!raw) return;
   try {
     const p = JSON.parse(raw);
-    if (p.messageId) editMessage_(chatId, p.messageId, p.preview + '\n\n⏭️ Dilewati (ada pesan baru).');
+    if (p.messageId && p.chatId) editMessage_(p.chatId, p.messageId, p.preview + '\n\n⏭️ Dilewati (ada pesan baru).');
   } catch (err) { /* nothing to close */ }
   clearPending_();
 }
 
-function askConfirm_(chatId, action, preview) {
-  closeOldPending_(chatId);
+function askConfirm_(to, action, preview) {
+  closeOldPending_();
   const id = Utilities.getUuid().slice(0, 8);
-  const messageId = sendMessage_(chatId, preview, [
+  const messageId = sendMessage_(to, preview, [
     { text: '✅ Simpan', callback_data: 'ok:' + id },
     { text: '❌ Batal', callback_data: 'no:' + id },
   ]);
   PropertiesService.getScriptProperties().setProperty('PENDING', JSON.stringify({
-    id: id, action: action, preview: preview, messageId: messageId, createdAt: Date.now(),
+    id: id, action: action, preview: preview, chatId: to.chatId, messageId: messageId, createdAt: Date.now(),
   }));
 }
 
 // Returns true if the text was a yes/no answer (handled here), false if it is a normal message.
-function handleConfirmText_(chatId, text) {
+function handleConfirmText_(to, text) {
   const word = text.trim().toLowerCase().replace(/[!.]+$/, '');
   const yes = YES_WORDS.indexOf(word) >= 0;
   const no = NO_WORDS.indexOf(word) >= 0;
   if (!yes && !no) return false;
   const p = getPending_();
   if (!p) {
-    sendMessage_(chatId, 'Tidak ada yang menunggu konfirmasi 🤖');
+    sendMessage_(to, 'Tidak ada yang menunggu konfirmasi 🤖');
     return true;
   }
-  resolvePending_(chatId, p, yes, false);
+  resolvePending_(to, p, yes, false);
   return true;
 }
 
 function handleCallback_(cb) {
-  const chatId = cb.message.chat.id;
+  const to = { chatId: cb.message.chat.id, threadId: cb.message.message_thread_id || null };
   const parts = String(cb.data || '').split(':');
   const p = getPending_();
   if (!p || p.id !== parts[1]) {
     answerCallback_(cb.id, 'Sudah kedaluwarsa ⌛');
-    editMessage_(chatId, cb.message.message_id, cb.message.text + '\n\n⌛ Kedaluwarsa, kirim ulang ya.');
+    editMessage_(to.chatId, cb.message.message_id, cb.message.text + '\n\n⌛ Kedaluwarsa, kirim ulang ya.');
     return;
   }
   const confirmed = parts[0] === 'ok';
   answerCallback_(cb.id, confirmed ? 'Diproses ⚙️' : 'Dibatalkan');
-  resolvePending_(chatId, p, confirmed, true);
+  resolvePending_(to, p, confirmed, true);
 }
 
 // Button taps turn the preview message into the result; typed answers get a new message.
-function resolvePending_(chatId, p, confirmed, viaButton) {
+function resolvePending_(to, p, confirmed, viaButton) {
   clearPending_();
   let result;
   if (confirmed) {
@@ -88,11 +89,12 @@ function resolvePending_(chatId, p, confirmed, viaButton) {
     result = '❌ ' + line_('cancelled');
   }
 
+  const previewChat = p.chatId || to.chatId;
   if (viaButton && p.messageId) {
-    editMessage_(chatId, p.messageId, result);
+    editMessage_(previewChat, p.messageId, result);
   } else {
-    if (p.messageId) editMessage_(chatId, p.messageId, p.preview + '\n\n' + (confirmed ? '✅ Dikonfirmasi' : '❌ Dibatalkan'));
-    sendMessage_(chatId, result);
+    if (p.messageId) editMessage_(previewChat, p.messageId, p.preview + '\n\n' + (confirmed ? '✅ Dikonfirmasi' : '❌ Dibatalkan'));
+    sendMessage_(to, result);
   }
 }
 

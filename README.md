@@ -91,3 +91,11 @@ Never put tokens in the code or in git; they live only in Script Properties.
 - Polling burst: after a message the bot stays awake for `BURST_SECONDS` (optional script property, default 120),
   so button taps and follow-ups are answered in a second or two.
 - Optional script property `DEFAULT_ACCOUNT`: used when a message names no account.
+
+## Group with topics
+
+The bot can live in a Telegram group with Topics, one topic per feature (finance is one of them).
+BotFather `/setprivacy` must be Disabled (re-add the bot afterwards) so it sees plain messages.
+Send `/whereami` in the topic to get the ids, then set Script Properties:
+`ALLOWED_USER_ID` (only this user is answered, even in the group), `ALLOWED_CHAT_ID` (comma-separated: group id,
+and the private chat id to keep that working), `FINANCE_TOPIC_ID` (other topics are ignored). Replies stay in the topic.

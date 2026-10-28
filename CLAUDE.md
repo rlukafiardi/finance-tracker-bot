@@ -59,6 +59,10 @@ and the dashboard answers "how much did I spend / save this month".
   "nabung X dari A ke B" is a transfer; the `saving` type remains only when no destination is named.
   The saving metric = saving rows + net transfers into tabungan accounts. Queries: period "all" added
   ("sekarang", "total"); no period defaults to this month.
+- 2026-10-28: Bot moves to a Telegram group with Topics, one topic per feature (plan: IDX technical analysis as
+  a separate Python project, e.g. GitHub Actions, sharing this bot; the Cloudflare relay will route by topic).
+  Access: ALLOWED_USER_ID (sender must be me), ALLOWED_CHAT_ID list (group + private), FINANCE_TOPIC_ID.
+  Replies carry message_thread_id. /whereami answers only me, anywhere, for setup. 12 access cases simulated in Node.
 - 2026-10-28: Delete ("hapus yang tadi", /hapus) removes all rows of the latest message (same created_at), so a
   multi-item message undoes as one unit; /hapus <id> removes one row. Budgets are monthly per expense category
   (`budgets` tab); replies warn at >= 80% on every expense in that category, not only when crossing.

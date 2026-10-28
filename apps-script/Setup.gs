@@ -79,7 +79,9 @@ function checkConfig() {
   const info = JSON.parse(res.getContentText()).result || {};
   const polling = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'pollUpdates'; });
   const lines = [
-    'ALLOWED_CHAT_ID is digits only (no spaces or quotes): ' + /^\d+$/.test(chatId),
+    'ALLOWED_CHAT_ID is valid (ids, comma-separated): ' + /^-?\d+(\s*,\s*-?\d+)*$/.test(chatId.trim()),
+    'Owner (ALLOWED_USER_ID) set: ' + Boolean(ownerId_()),
+    'FINANCE_TOPIC_ID: ' + (props.getProperty('FINANCE_TOPIC_ID') || 'not set (every topic is answered)'),
     'Mode: ' + (polling ? 'polling (every minute)' : 'webhook'),
   ];
   if (polling) {
