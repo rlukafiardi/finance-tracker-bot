@@ -1,4 +1,4 @@
-// Entry points: Telegram webhook (doPost) or polling (Poll.gs) -> handleUpdate_.
+// Entry point: Telegram webhook via the relay (doPost) -> handleUpdate_.
 // Messages: yes/no to a pending action, slash command, or Gemini parse -> reply or confirmation preview.
 
 const TZ = 'Asia/Jakarta';
@@ -53,17 +53,10 @@ function idList_(value) {
   return String(value || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
 }
 
-// ALLOWED_USER_ID is me. Before groups, ALLOWED_CHAT_ID was my private chat, whose id equals my user id.
-function ownerId_() {
-  const explicit = optionalProp_('ALLOWED_USER_ID').trim();
-  if (explicit) return explicit;
-  return idList_(prop_('ALLOWED_CHAT_ID')).find(function (id) { return id.charAt(0) !== '-'; }) || '';
-}
-
-// Shared by the webhook and polling. Only I am answered, only in ALLOWED_CHAT_ID (comma-separated: private chat
-// and/or group), and in a group only inside FINANCE_TOPIC_ID when it is set. /whereami answers me anywhere.
+// Only ALLOWED_USER_ID is answered, only in ALLOWED_CHAT_ID (comma-separated: private chat and/or group), and in
+// a group only inside FINANCE_TOPIC_ID when it is set. /whereami answers that user anywhere.
 function handleUpdate_(update) {
-  const owner = ownerId_();
+  const owner = prop_('ALLOWED_USER_ID').trim();
   const chats = idList_(prop_('ALLOWED_CHAT_ID'));
   const topic = optionalProp_('FINANCE_TOPIC_ID').trim();
 
@@ -74,11 +67,7 @@ function handleUpdate_(update) {
       return;
     }
     console.log('Handling button ' + update.update_id);
-    try {
-      handleCallback_(cb);
-    } catch (err) {
-      console.error(err && err.stack ? err.stack : err);
-    }
+    handleCallback_(cb);
     return;
   }
 

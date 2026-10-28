@@ -99,7 +99,6 @@ Definitions used everywhere (bot answers and formulas agree):
 | `apps-script/Gemini.gs` / `Prompt.gs` | Gemini call (structured JSON, retries) and the parsing prompt |
 | `apps-script/Persona.gs` | Emoji and robot lines |
 | `apps-script/Telegram.gs` | Bot API helpers; replies stay in the topic |
-| `apps-script/Poll.gs` | Polling mode (fallback without the relay) |
 | `apps-script/Setup.gs` | `setup()`, webhook helpers, `checkConfig()` |
 | `apps-script/Tests.gs` | `runExamples()`: 26 messages with expected parses |
 | `relay/worker.js` | Cloudflare Worker relay |
@@ -120,9 +119,7 @@ Apps Script > Project Settings > Script Properties. Secrets live only here and i
 | `FINANCE_TOPIC_ID` | no | Only this group topic is answered |
 | `WEBHOOK_SECRET` | yes | Letters, digits, `_` or `-` only (Telegram rule), e.g. `openssl rand -hex 16` |
 | `WEBAPP_URL` | yes | The web app `/exec` URL |
-| `RELAY_URL` | webhook mode | The Worker URL |
-| `DEFAULT_ACCOUNT` | no | Account used when a message names none |
-| `BURST_SECONDS` | no | Polling mode only, default 120 |
+| `RELAY_URL` | yes | The Worker URL |
 | `LAST_UPDATE_ID`, `PENDING` | internal | Written by the bot; do not edit |
 
 Cloudflare Worker secrets: `TELEGRAM_SECRET` (= `WEBHOOK_SECRET`) and `APPS_SCRIPT_URL`
@@ -138,7 +135,7 @@ npm install            # once
 npm run login          # once; pick the personal Google account. Token goes to .clasp-auth/ (gitignored)
 npm run check          # syntax check of all .gs files together (also catches duplicate globals)
 npm run deploy         # check + push + new version of the existing web app deployment (same /exec URL)
-npm run push           # check + push only (enough in polling mode)
+npm run push           # check + push only; the live bot keeps running the deployed version
 ```
 
 One-time requirement: the Apps Script API must be on at https://script.google.com/home/usersettings.
@@ -150,8 +147,7 @@ Functions to run from the Apps Script editor:
 | `setup()` | After schema changes. Safe to re-run: adds missing tabs, headers, formulas, kinds; never overwrites rows. |
 | `runExamples()` | After prompt changes. ~2.5 min, uses ~26 Gemini requests, writes nothing. |
 | `checkConfig()` | When the bot is silent. Prints every setting check without showing secrets. |
-| `setWebhook()` / `webhookInfo()` | Point Telegram at the relay (or web app) / show delivery status. |
-| `startPolling()` / `stopPolling()` | Switch to polling mode and back. |
+| `setWebhook()` | Point Telegram at the relay (`RELAY_URL`) and drop queued updates. |
 
 ## Setup from scratch
 
@@ -168,15 +164,11 @@ Functions to run from the Apps Script editor:
    and put the Worker URL in `RELAY_URL`.
 8. **Connect:** run `setWebhook()`, then `checkConfig()`. Every check should be true and the last error "none".
 9. **Ids:** send `/whereami` in the Finance topic and set `ALLOWED_USER_ID`, `ALLOWED_CHAT_ID`, `FINANCE_TOPIC_ID`.
-
-No Cloudflare? Run `startPolling()` instead of steps 7–8: replies take up to a minute, then stay instant for
-`BURST_SECONDS` after each message.
-
 ## Troubleshooting
 
 | Symptom | Check |
 |---|---|
-| Bot is silent | `checkConfig()`. Then Executions: `doPost` (webhook) or `pollUpdates` (polling) rows show why, e.g. `Ignored: sender is not ALLOWED_USER_ID`. |
+| Bot is silent | `checkConfig()`. Then Executions: `doPost` rows show why, e.g. `Ignored: sender is not ALLOWED_USER_ID`. |
 | Silent only in the group | BotFather privacy must be Disabled, and the bot re-added to the group after changing it. Check `FINANCE_TOPIC_ID`. |
 | `Wrong response from the webhook: 302` | Telegram points at Apps Script directly. Set `RELAY_URL` and run `setWebhook()`. |
 | Worker logs show 403 | `TELEGRAM_SECRET` differs from `WEBHOOK_SECRET`. |
@@ -189,6 +181,6 @@ No Cloudflare? Run `startPolling()` instead of steps 7–8: replies take up to a
 
 - **Gemini free tier** (on my project, October 2026): `gemini-3.5-flash-lite` 15 requests/min, 500/day.
   Free-tier prompts may be used by Google to improve its products, so never type account numbers or similar.
-- **Apps Script** (free account): about 90 min/day of trigger runtime (polling mode only) and a 6-minute limit per run.
+- **Apps Script** (free account): a 6-minute limit per run; a message takes a few seconds.
 - **Cloudflare Workers** free plan: far above personal use.
 - Access is owner-only: other group members, other topics and other chats are ignored, including button taps.

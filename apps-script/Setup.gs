@@ -7,10 +7,7 @@ const DEFAULT_CATEGORIES = [
   ['saving', 'Tabungan'], ['saving', 'Dana Darurat'], ['saving', 'Investasi'], ['saving', 'Lainnya'],
 ];
 
-// Creates or upgrades the tabs. Safe to re-run: it never overwrites existing rows.
-//   transactions: headers (adds the to_account header if an older sheet lacks it)
-//   categories:   default categories, plus `saving | Lainnya` if missing
-//   accounts:     header only; accounts are added by /akun or when you mention a new account
+// Creates the tabs with headers and default categories. Safe to re-run: tabs that have content are left alone.
 function setup() {
   const ss = spreadsheet_();
 
@@ -21,8 +18,6 @@ function setup() {
     tx.getRange('B:B').setNumberFormat('yyyy-mm-dd');
     tx.getRange('C:C').setNumberFormat('#,##0');
     tx.getRange('J:J').setNumberFormat('yyyy-mm-dd hh:mm:ss');
-  } else if (!tx.getRange(1, 11).getValue()) {
-    tx.getRange(1, 11).setValue('to_account');
   }
 
   const cat = ss.getSheetByName('categories') || ss.insertSheet('categories');
@@ -30,36 +25,22 @@ function setup() {
     cat.getRange(1, 1, 1, 2).setValues([['type', 'category']]);
     cat.getRange(2, 1, DEFAULT_CATEGORIES.length, 2).setValues(DEFAULT_CATEGORIES);
     cat.setFrozenRows(1);
-  } else if (getCategories_().saving.indexOf('Lainnya') < 0) {
-    cat.appendRow(['saving', 'Lainnya']);
   }
 
-  // accounts: add current_balance (a live formula) and kind (guessed from the name) where missing.
-  const acc = accountsSheet_();
-  if (!acc.getRange(1, 3).getValue()) acc.getRange(1, 3).setValue('current_balance');
-  if (!acc.getRange(1, 4).getValue()) acc.getRange(1, 4).setValue('kind');
-  for (let r = 2; r <= acc.getLastRow(); r++) {
-    const name = acc.getRange(r, 1).getValue();
-    if (!name) continue;
-    if (!acc.getRange(r, 3).getFormula()) acc.getRange(r, 3).setFormula(balanceFormula_(r));
-    if (!acc.getRange(r, 4).getValue()) acc.getRange(r, 4).setValue(guessKind_(name));
-  }
-  acc.getRange('B:C').setNumberFormat('#,##0');
-
+  accountsSheet_();
   budgetsSheet_();
   console.log('Setup done.');
 }
 
-// Telegram should call the relay (RELAY_URL, see relay/worker.js); without it, the web app directly.
-function webhookTarget_() {
-  const relay = optionalProp_('RELAY_URL');
-  return relay || prop_('WEBAPP_URL') + '?secret=' + encodeURIComponent(prop_('WEBHOOK_SECRET'));
-}
-
-// Points the Telegram bot at the relay or web app and drops any queued updates.
+// Telegram must call the relay (relay/worker.js), never the web app: Apps Script answers webhooks with a 302,
+// which Telegram treats as a failed delivery and retries forever. The relay checks secret_token.
 function setWebhook() {
-  const payload = { url: webhookTarget_(), allowed_updates: ['message', 'callback_query'], drop_pending_updates: true };
-  if (optionalProp_('RELAY_URL')) payload.secret_token = prop_('WEBHOOK_SECRET'); // checked by the relay
+  const payload = {
+    url: prop_('RELAY_URL'),
+    secret_token: prop_('WEBHOOK_SECRET'),
+    allowed_updates: ['message', 'callback_query'],
+    drop_pending_updates: true,
+  };
   const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/setWebhook', {
     method: 'post',
     contentType: 'application/json',
@@ -73,37 +54,17 @@ function setWebhook() {
 function checkConfig() {
   const props = PropertiesService.getScriptProperties();
   const chatId = props.getProperty('ALLOWED_CHAT_ID') || '';
-  const secret = props.getProperty('WEBHOOK_SECRET') || '';
-  const webapp = props.getProperty('WEBAPP_URL') || '';
   const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/getWebhookInfo');
   const info = JSON.parse(res.getContentText()).result || {};
-  const polling = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'pollUpdates'; });
-  const lines = [
+  console.log([
     'ALLOWED_CHAT_ID is valid (ids, comma-separated): ' + /^-?\d+(\s*,\s*-?\d+)*$/.test(chatId.trim()),
-    'Owner (ALLOWED_USER_ID) set: ' + Boolean(ownerId_()),
+    'ALLOWED_USER_ID set: ' + Boolean(props.getProperty('ALLOWED_USER_ID')),
     'FINANCE_TOPIC_ID: ' + (props.getProperty('FINANCE_TOPIC_ID') || 'not set (every topic is answered)'),
-    'Mode: ' + (polling ? 'polling (every minute)' : 'webhook'),
-  ];
-  if (polling) {
-    lines.push('Webhook removed (required for polling): ' + !info.url);
-  } else {
-    lines.push(
-      'WEBHOOK_SECRET is letters/digits only: ' + /^[A-Za-z0-9]+$/.test(secret),
-      'WEBAPP_URL ends with /exec: ' + /\/exec$/.test(webapp),
-      'Using relay (RELAY_URL set): ' + Boolean(props.getProperty('RELAY_URL')),
-      'Telegram webhook points at the expected target: ' + (info.url === webhookTarget_()),
-      'Last Telegram error: ' + (info.last_error_message || 'none'));
-  }
-  lines.push(
+    'WEBHOOK_SECRET uses only letters, digits, _ or -: ' + /^[A-Za-z0-9_-]+$/.test(props.getProperty('WEBHOOK_SECRET') || ''),
+    'WEBAPP_URL ends with /exec: ' + /\/exec$/.test(props.getProperty('WEBAPP_URL') || ''),
+    'Telegram webhook points at RELAY_URL: ' + (Boolean(info.url) && info.url === props.getProperty('RELAY_URL')),
+    'Last Telegram error: ' + (info.last_error_message || 'none'),
     'LAST_UPDATE_ID: ' + (props.getProperty('LAST_UPDATE_ID') || 'none'),
-    'Pending updates at Telegram: ' + info.pending_update_count);
-  console.log(lines.join('\n'));
-}
-
-// Shows delivery status. The webhook URL contains the secret, so it is removed from the log.
-function webhookInfo() {
-  const res = UrlFetchApp.fetch('https://api.telegram.org/bot' + prop_('TELEGRAM_BOT_TOKEN') + '/getWebhookInfo');
-  const info = JSON.parse(res.getContentText());
-  if (info.result) delete info.result.url;
-  console.log(JSON.stringify(info, null, 2));
+    'Pending updates at Telegram: ' + info.pending_update_count,
+  ].join('\n'));
 }
