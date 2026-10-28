@@ -46,6 +46,7 @@ Telegram with 200 itself and forwards the update to Apps Script.
 | `transfer bca ke bni 1jt admin 2,5rb` | Transfer plus its admin fee as an expense on the source account |
 | `kopi 25rb, parkir 5rb` | Two transactions from one message |
 | `tambah akun Bibit 5jt investasi` / `saldo awal BCA 10jt` / `Bibit itu investasi` | Add an account, or set its opening balance or kind (same as `/akun`) |
+| `ganti nama akun BCA jadi BCA Utama` | Rename an account; past transactions follow the new name (same as `/akun BCA jadi BCA Utama`) |
 | `budget makan 1,5jt` / `hapus budget makan` / `status budget?` | Set, remove, show monthly budgets (same as `/budget`) |
 | `kategori apa aja?` / `tambah kategori Hobi` | List / add categories (same as `/kategori`) |
 | `hapus transaksi a1b2c3d4` | Delete one transaction by id (same as `/hapus <id>`) |
@@ -69,6 +70,7 @@ shortcuts that skip the Gemini call.
 | `/saldo` | All balances, grouped by account kind |
 | `/akun BNI 1,5jt` | Add an account or set its opening balance |
 | `/akun Bibit 5jt investasi` / `/akun Bibit investasi` | Add with a kind / change the kind |
+| `/akun BCA jadi BCA Utama` | Rename an account (also `->`) |
 | `/budget makan 1,5jt` / `/budget makan 0` / `/budget` | Set, remove, show monthly budgets |
 | `/kategori` / `/kategori expense Hobi` | List / add categories |
 | `/terakhir 10` | Latest entries with their ids |

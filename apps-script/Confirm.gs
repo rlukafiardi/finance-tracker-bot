@@ -105,6 +105,7 @@ function runAction_(action) {
     case 'correct': return commitCorrect_(action);
     case 'delete': return commitDelete_(action);
     case 'account': return commitAccount_(action);
+    case 'rename': return commitRename_(action);
     case 'category': return commitCategory_(action);
     case 'budget': return commitBudget_(action);
     default: throw new Error('unknown action ' + action.kind);

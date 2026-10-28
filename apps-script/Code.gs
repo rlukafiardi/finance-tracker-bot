@@ -126,7 +126,9 @@ function handleMessage_(msg, to) {
       } else if (parsed.intent === 'account') {
         const a = parsed.account_setup || {};
         const opening = Number.isInteger(a.opening) && a.opening >= 0 ? a.opening : null;
-        r = prepareAccount_(String(a.name || '').trim(), opening, parseKind_(a.kind), ctx);
+        r = a.rename_to
+          ? prepareRename_(String(a.name || '').trim(), String(a.rename_to).trim(), ctx)
+          : prepareAccount_(String(a.name || '').trim(), opening, parseKind_(a.kind), ctx);
       } else if (parsed.intent === 'budget') {
         const b = parsed.budget_setup || {};
         r = b.category && Number.isInteger(b.limit) && b.limit >= 0
@@ -141,7 +143,11 @@ function handleMessage_(msg, to) {
       } else if (parsed.intent === 'delete') {
         r = parsed.delete_id ? prepareDeleteById_(String(parsed.delete_id).replace(/^#/, '')) : prepareDeleteLast_();
       } else if (parsed.intent === 'correct') {
-        r = prepareCorrect_(parsed.correction, ctx);
+        const pending = getPending_();
+        const byId = parsed.correction && parsed.correction.id;
+        r = pending && pending.action.kind === 'log' && !byId
+          ? prepareEditPending_(pending, parsed.correction, ctx)
+          : prepareCorrect_(parsed.correction, ctx);
       } else if (parsed.intent === 'query') {
         r = '📊 ' + answerQuery_(parsed.query, ctx) + quip;
       } else {
