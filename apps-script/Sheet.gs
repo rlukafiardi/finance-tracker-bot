@@ -167,10 +167,10 @@ function normalizeTx_(tx, ctx) {
 
 function describe_(tx) {
   if (tx.type === 'transfer') {
-    return '🔁 Transfer ' + rupiah_(tx.amount) + '\n     ' + tx.account + ' ➜ ' + tx.to_account + ' · ' + tx.date;
+    return '🔁 Transfer ' + rupiah_(tx.amount) + '\n└ ' + tx.account + ' ➜ ' + tx.to_account + ' · ' + tx.date;
   }
   const details = [tx.merchant, tx.account, tx.date].filter(Boolean).join(' · ');
-  return emojiFor_(tx) + ' ' + tx.category + ' ' + rupiah_(tx.amount) + '\n     ' + details;
+  return emojiFor_(tx) + ' ' + tx.category + ' ' + rupiah_(tx.amount) + '\n└ ' + details;
 }
 
 function newAccountsNote_(names) {
@@ -419,7 +419,7 @@ function balanceReply_(ctx, onlyAccount, onlyKind) {
     const sub = names.reduce(function (s, n) { return s + bal[n]; }, 0);
     total += sub;
     return KIND_LABEL[k] + ': ' + rupiah_(sub) + '\n' +
-      names.map(function (n) { return '   ' + n + ' ' + rupiah_(bal[n]); }).join('\n');
+      names.map(function (n) { return '└ ' + n + ' ' + rupiah_(bal[n]); }).join('\n');
   });
   return (onlyKind ? KIND_LABEL[onlyKind] + ' kamu sekarang' : '💰 Saldo akun') + ':\n\n' + blocks.join('\n\n') +
     (kinds.length > 1 ? '\n\n💰 Total: ' + rupiah_(total) : '') + '\n(saldo awal + transaksi yang tercatat)';
