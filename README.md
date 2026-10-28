@@ -69,13 +69,14 @@ Amounts understand `35rb`, `35k`, `15jt`, `1,5jt`, `2.500.000`. Dates understand
 
 Budget warnings appear on every expense in a category once it reaches 80% (⚠️) or 100% (🚨) of this month's limit.
 
-Scheduled messages (in the Finance topic, times in WIB, each within the hour):
+Scheduled messages (in the Finance topic, 09:00 WIB, each within the hour):
 
 | When | Message |
 |---|---|
-| Every day 21:00 | Today's spending, top categories, income, saving, budget warnings (or a nudge if nothing was logged) |
-| Sunday 20:00 | The week (Mon–Sun), budget status, and a spending alert: ±20% versus the average of up to 4 earlier weeks, with the category that grew most |
-| 1st of the month 02:00 | Values-only backup of every tab into Google Drive > `finance-tracker backups` (old backups are kept) |
+| Every Monday | Last week (Mon–Sun): spending, top categories, income, saving, this month's budget status, and a spending alert: ±20% versus the average of up to 4 earlier weeks, with the category that grew most |
+| 1st of the month | Last month: the same totals, savings rate, budget results, an alert versus up to 3 earlier months, and a values-only backup of every tab into Google Drive > `finance-tracker backups` (old backups are kept) |
+
+Earlier periods from before tracking started are skipped, so they do not count as zero spending.
 
 ## Data model (Google Sheet)
 
@@ -105,7 +106,7 @@ Definitions used everywhere (bot answers and formulas agree):
 | `apps-script/Budget.gs` | Budgets and warnings |
 | `apps-script/Commands.gs` | Slash commands and `/help` text |
 | `apps-script/Gemini.gs` / `Prompt.gs` | Gemini call (structured JSON, retries) and the parsing prompt |
-| `apps-script/Reports.gs` | Scheduled daily/weekly recaps, spending alert, monthly backup |
+| `apps-script/Reports.gs` | Scheduled weekly/monthly recaps, spending alert, monthly backup |
 | `apps-script/Persona.gs` | Emoji and robot lines |
 | `apps-script/Telegram.gs` | Bot API helpers; replies stay in the topic |
 | `apps-script/Setup.gs` | `setup()`, webhook helpers, `checkConfig()` |
@@ -157,8 +158,8 @@ Functions to run from the Apps Script editor:
 | `runExamples()` | After prompt changes. ~2.5 min, uses ~26 Gemini requests, writes nothing. |
 | `checkConfig()` | When the bot is silent. Prints every setting check without showing secrets. |
 | `setWebhook()` | Point Telegram at the relay (`RELAY_URL`) and drop queued updates. |
-| `installSchedules()` | Once, to start the scheduled messages and backup. Safe to re-run. Asks for Drive access (backup). |
-| `dailySummary()` / `weeklySummary()` / `monthlyBackup()` | Run by hand to see a report now. |
+| `installSchedules()` | Once, to start the scheduled recaps and backup. Safe to re-run (replaces all triggers). Asks for Drive access (backup). |
+| `weeklySummary()` / `monthlySummary()` | Run by hand to see a recap now (the monthly one also makes a backup). |
 
 ## Setup from scratch
 
