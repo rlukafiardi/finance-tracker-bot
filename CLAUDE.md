@@ -141,6 +141,9 @@ and the dashboard answers "how much did I spend / save this month".
   category Lainnya set by the parser, so third-party names never reach Gemini. DANA top-ups have no fee; ShopeePay
   (500) and OVO (1.000) deduct it inside the wallet, so `WALLET_DEDUCTED_FEES` adds it on the wallet account.
   `auditEmails()` / `dumpFailedSamples()` in Gmail.gs re-check parsers against old mail.
+- 2026-10-29: Email import runs 5x a day (09, 12, 15, 18, 21 WIB; `EMAIL_HOURS`, trigger `scheduledEmailImport`),
+  silent when nothing is new. Dashboard stays: rebuilt after every confirmed change (an email batch ✅ included) and
+  daily 06:00 as a safety net. All time triggers fire at a random point within their hour.
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in my private Telegram group,
