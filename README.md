@@ -108,8 +108,9 @@ The bot reads BNI and BCA notification emails and proposes them as transactions.
 | BCA `Internet Transaction Journal`: transfer | Same rule as BNI transfers (own account → transfer, else expense), fee as a Biaya Admin row on BCA |
 
 - At 09, 12, 15, 18 and 21 WIB (each within its hour; `EMAIL_HOURS` in `Gmail.gs`), and on `/email` or "cek email", the
-  new emails come as one numbered batch with ✅/❌. A run with nothing new stays silent. A batch that waits unanswered
-  is offered again at the next run.
+  new emails come as one numbered batch with ✅/❌. A run with nothing new stays silent, except the 21:00 run, which says
+  so once a day. A batch that waits unanswered is offered again at the next run. A failed run sends one
+  "⚠️ Cek email gagal" message per day (details under Apps Script > Executions).
   Fix a line before approving: `ubah no 2 jadi parkir motor` (a category that does not exist yet is created on ✅).
 - Category: the one used before for the same merchant, else one Gemini call for the new merchants.
 - An email whose amount, account and date (±1 day) already match a transaction is skipped as already logged.

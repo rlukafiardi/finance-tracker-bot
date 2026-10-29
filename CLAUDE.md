@@ -144,6 +144,8 @@ and the dashboard answers "how much did I spend / save this month".
 - 2026-10-29: Email import runs 5x a day (09, 12, 15, 18, 21 WIB; `EMAIL_HOURS`, trigger `scheduledEmailImport`),
   silent when nothing is new. Dashboard stays: rebuilt after every confirmed change (an email batch ✅ included) and
   daily 06:00 as a safety net. All time triggers fire at a random point within their hour.
+- 2026-10-29: Email runs are silent when nothing is new, except the 21:00 run (one "tidak ada email" line a day, my
+  pick). A failed run alerts the topic once a day (`EMAIL_ALERT_DATE`) and is rethrown, so Executions shows it failed.
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in my private Telegram group,
