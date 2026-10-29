@@ -37,7 +37,7 @@ const HELP_TEXT = [
   '',
   '📧 EMAIL BANK',
   '› cek email (atau /email): transaksi baru dari email BNI/BCA, simpan setelah kamu setuju',
-  '  (otomatis juga tiap pagi · ubah dulu dengan "ubah no 2 jadi parkir motor")',
+  '  (otomatis juga jam 9, 12, 15, 18, 21 · ubah dulu dengan "ubah no 2 jadi parkir motor")',
   '',
   '⌨️ Jalan pintas (opsional): /saldo /akun /budget /kategori /terakhir /hapus /email',
   '/whereami: id chat & topic (untuk setup)',

@@ -1,5 +1,5 @@
 // Bank notification emails (Gmail API v1, read-only scope).
-// Import: dailyEmailImport() (09:00 WIB) and /email read emails received since EMAIL_SINCE that are not in the
+// Import: scheduledEmailImport() (09, 12, 15, 18 and 21 WIB) and /email read emails received since EMAIL_SINCE that are not in the
 // `email_log` tab yet, parse them (EmailParse.gs) and ask for approval with one numbered batch (action kind 'emails').
 // Nothing is written to `transactions` before the ✅. A batch that is replaced or expires leaves its emails unmarked,
 // so the next run offers them again.
@@ -13,7 +13,7 @@ const EMAIL_SOURCES = [
   { bank: 'BCA', from: 'bca@bca.co.id', subject: 'Internet Transaction Journal' },
 ];
 const SAMPLE_LOOKBACK_DAYS = 60;
-const EMAIL_HOUR = 9;
+const EMAIL_HOURS = [9, 12, 15, 18, 21]; // WIB; each trigger fires at some point within its hour
 const EMAIL_BATCH_MAX = 12; // the PENDING script property holds the whole batch and is limited to 9 KB
 
 function emailQuery_(source, days) {
@@ -289,7 +289,7 @@ function emailNotes_(duplicates, unsupported, leftover, geminiFailed) {
 }
 
 // Time trigger. Takes the same lock as the webhook so it cannot interleave with a chat message.
-function dailyEmailImport() {
+function scheduledEmailImport() {
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {

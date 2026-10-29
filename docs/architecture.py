@@ -34,7 +34,7 @@ d.arrow([(492, 58), (1510, 58), (1510, 218), (1558, 218)], 'rebuild dashboard ta
 d.box(980, 60, 190, 56, 'service', 'GMAIL', 'BNI · BCA notifications')
 d.box(1230, 150, 200, 56, 'code', 'EMAIL IMPORT', 'parse · dedupe · category')
 d.arrow([(1172, 88), (1195, 88), (1195, 165), (1228, 165)], 'read-only', at=(1128, 126), style='dotted')
-d.arrow([(145, 155), (145, 240), (1210, 240), (1210, 191), (1228, 191)], 'email · daily 09 · /email', at=(700, 222))
+d.arrow([(145, 155), (145, 240), (1210, 240), (1210, 191), (1228, 191)], 'email · 09 12 15 18 21 · /email', at=(700, 222))
 d.arrow([(1390, 208), (1390, 343)], 'batch preview', at=(1290, 262))
 d.arrow([(1432, 185), (1470, 185), (1470, 298), (1558, 298)], 'handled ids', at=(1474, 304), style='dotted')
 
