@@ -146,6 +146,11 @@ and the dashboard answers "how much did I spend / save this month".
   daily 06:00 as a safety net. All time triggers fire at a random point within their hour.
 - 2026-10-29: Email runs are silent when nothing is new, except the 21:00 run (one "tidak ada email" line a day, my
   pick). A failed run alerts the topic once a day (`EMAIL_ALERT_DATE`) and is rethrown, so Executions shows it failed.
+- 2026-10-31: Lessons from two incidents. (1) A deleted helper (`getEmail_`) passed `node --check` and broke the 21:00
+  import at run time: `npm run check` now also runs `scripts/check-refs.js` (undefined helper or trigger function
+  fails). (2) A revoked Gemini key surfaced only as the generic "sirkuit" reply while Executions showed "Completed"
+  (the handler catches errors): the reply now carries the first 120 characters of the error. A "Gemini 400, API key
+  not valid" means replace `GEMINI_API_KEY` in Script Properties.
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in my private Telegram group,
@@ -158,6 +163,11 @@ and the dashboard answers "how much did I spend / save this month".
   refresh schedule checked by me in live use.
 - 2026-10-28: merchant/account lookups, correct by id and admin-fee buttons live (deployment @18), checked by me
   in Telegram along with the dashboard fixes.
+- 2026-10-31: Gmail import live (deployment @32): BNI and BCA notification emails (QRIS, Virtual Account, PLN token,
+  e-wallet top-ups, transfers, BCA transfers) become one numbered batch to approve with ✅/❌, at 09, 12, 15, 18
+  and 21 WIB and on `/email`; silent when nothing is new except one line at 21:00; a failed run alerts once a day.
+  Audit of 90 days: 130 of 130 emails parsed. Not imported on purpose: `Kode tarik tunai` (I type withdrawals).
+  Re-check parsers against old mail with `auditEmails()` / `dumpFailedSamples()`.
 - Feature backlog (my picks, not scheduled): recurring entries; receipt photos and voice notes via Gemini multimodal; savings goals. Other ideas I
   liked less: runway and forecast, net worth, debts and split bills, bill reminders, duplicate and large-expense
   warnings, streaks, monthly PDF. WhatsApp Cloud API is parked as a possible second channel.
