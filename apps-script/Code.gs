@@ -163,6 +163,6 @@ function handleMessage_(msg, to) {
     else sendMessage_(to, r.reply);
   } catch (err) {
     console.error(err && err.stack ? err.stack : err);
-    sendMessage_(to, '⚠️ Bip... ada error di sirkuit saya. Coba lagi sebentar ya.');
+    sendMessage_(to, '⚠️ Bip... ada error di sirkuit saya (' + String(err && err.message).slice(0, 120) + '). Coba lagi sebentar ya.');
   }
 }
