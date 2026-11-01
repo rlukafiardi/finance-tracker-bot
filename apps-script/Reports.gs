@@ -57,16 +57,26 @@ function pastPeriods_(rows, range, n, previous) {
   return past;
 }
 
-function topCats_(byCat, n) {
-  return Object.keys(byCat).sort(function (a, b) { return byCat[b] - byCat[a]; }).slice(0, n)
-    .map(function (c) { return emojiFor_({ category: c, type: 'expense' }) + ' ' + c + ' ' + rupiah_(byCat[c]); })
-    .join(' · ');
+// One line per expense category, biggest first, with its share of the total. Only the first n are listed; the rest
+// is summed in one last line, so nothing silently disappears.
+function categoryLines_(byCat, total, n) {
+  const names = Object.keys(byCat).sort(function (a, b) { return byCat[b] - byCat[a]; });
+  const entries = names.slice(0, n).map(function (c) {
+    return emojiFor_({ category: c, type: 'expense' }) + ' ' + c + ' ' + rupiah_(byCat[c]) +
+      ' (' + Math.round(byCat[c] / total * 100) + '%)';
+  });
+  const rest = names.slice(n);
+  if (rest.length) {
+    entries.push('… ' + rest.length + ' kategori lain ' + rupiah_(rest.reduce(function (t, c) { return t + byCat[c]; }, 0)));
+  }
+  return entries.map(function (e, i) { return (i === entries.length - 1 ? '   └ ' : '   ├ ') + e; });
 }
 
 function totalsLines_(s, topN) {
   const lines = ['💸 Pengeluaran: ' + rupiah_(s.expense)];
-  if (s.expense) lines.push('└ ' + topCats_(s.byCat, topN));
-  lines.push('💰 Pemasukan: ' + rupiah_(s.income), '⚖️ Sisa: ' + rupiah_(s.kept));  return lines;
+  if (s.expense) lines.push.apply(lines, categoryLines_(s.byCat, s.expense, topN));
+  lines.push('💰 Pemasukan: ' + rupiah_(s.income), '⚖️ Sisa: ' + rupiah_(s.kept));
+  return lines;
 }
 
 // The current tabungan balance as a one-line array, empty when there are no tabungan accounts.
@@ -95,7 +105,7 @@ function monthlySummary() {
   const s = sumRows_(between_(all, month));
   const title = MONTHS_ID[Number(month.from.slice(5, 7)) - 1] + ' ' + month.from.slice(0, 4);
 
-  const lines = ['📆 Rekap bulan ' + title, ''].concat(totalsLines_(s, 5), tabunganLine_(ctx));
+  const lines = ['📆 Rekap bulan ' + title, ''].concat(totalsLines_(s, Infinity), tabunganLine_(ctx));
   if (s.income > 0) lines.push('📈 Savings rate: ' + ((s.income - s.expense) / s.income * 100).toFixed(1) + '%');
   lines.push('', spendingAlert_(s, pastPeriods_(all, month, 3, prevMonth_), 'bulan'));
 
