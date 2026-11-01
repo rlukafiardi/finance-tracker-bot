@@ -152,6 +152,9 @@ and the dashboard answers "how much did I spend / save this month".
   (the handler catches errors): the reply now carries the first 120 characters of the error. A "Gemini 400, API key
   not valid" means replace `GEMINI_API_KEY` in Script Properties.
 - 2026-10-31: The GitHub repo is public by my choice. Scan the whole history for secrets and real names before each push.
+- 2026-11-01: Monthly recap on demand (my request): `/rekap [bulan] [tahun]` and chat intent `recap` (`recap_month`
+  YYYY-MM, null = last month). Same builder as the scheduled one (`monthRecapLines_`), read-only (no backup). The
+  recap now lists every category, one per line with its share; the weekly one keeps the top 3 plus a rest line.
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in my private Telegram group,

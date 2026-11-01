@@ -97,17 +97,24 @@ function weeklySummary() {
   sendMessage_(reportTarget_(), lines.join('\n'));
 }
 
-function monthlySummary() {
-  const backupName = backupSheet_();
-  const ctx = { cats: getCategories_(), accounts: getAccounts_() };
-  const all = readTransactions_();
-  const month = prevMonth_({ from: todayStr_().slice(0, 8) + '01' });
+// First and last day of a month given as "YYYY-MM".
+function monthRange_(ym) {
+  const year = Number(ym.slice(0, 4));
+  const month = Number(ym.slice(5, 7));
+  const next = month === 12 ? (year + 1) + '-01-01' : ym.slice(0, 5) + ('0' + (month + 1)).slice(-2) + '-01';
+  return { from: ym + '-01', to: addDays_(next, -1) };
+}
+
+// The recap of one month. A month that is still running is labelled "(berjalan)" and has no comparison, because it
+// would be set against full months.
+function monthRecapLines_(month, ctx, all) {
   const s = sumRows_(between_(all, month));
-  const title = MONTHS_ID[Number(month.from.slice(5, 7)) - 1] + ' ' + month.from.slice(0, 4);
+  const running = month.to >= todayStr_();
+  const title = MONTHS_ID[Number(month.from.slice(5, 7)) - 1] + ' ' + month.from.slice(0, 4) + (running ? ' (berjalan)' : '');
 
   const lines = ['📆 Rekap bulan ' + title, ''].concat(totalsLines_(s, Infinity), tabunganLine_(ctx));
   if (s.income > 0) lines.push('📈 Savings rate: ' + ((s.income - s.expense) / s.income * 100).toFixed(1) + '%');
-  lines.push('', spendingAlert_(s, pastPeriods_(all, month, 3, prevMonth_), 'bulan'));
+  if (!running) lines.push('', spendingAlert_(s, pastPeriods_(all, month, 3, prevMonth_), 'bulan'));
 
   const budgets = getBudgets_();
   if (budgets.length) {
@@ -118,8 +125,28 @@ function monthlySummary() {
         Math.round(used / b.limit * 100) + '%)' + (used > b.limit ? ' 🚨' : ''));
     });
   }
+  return lines;
+}
+
+function monthlySummary() {
+  const backupName = backupSheet_();
+  const ctx = { cats: getCategories_(), accounts: getAccounts_() };
+  const month = prevMonth_({ from: todayStr_().slice(0, 8) + '01' });
+  const lines = monthRecapLines_(month, ctx, readTransactions_());
   lines.push('', '🗄️ Backup tersimpan: Google Drive > ' + BACKUP_FOLDER + ' > ' + backupName);
   sendMessage_(reportTarget_(), lines.join('\n'));
+}
+
+// On demand (/rekap and chat): the recap of "YYYY-MM", last month when empty. Read-only, no backup.
+function monthRecapReply_(ym, ctx) {
+  const thisMonth = todayStr_().slice(0, 7);
+  const target = ym ? String(ym) : prevMonth_({ from: thisMonth + '-01' }).from.slice(0, 7);
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(target)) return 'Bulan yang mana? Contoh: /rekap september, /rekap 2026-08 atau "rekap bulan lalu".';
+  if (target > thisMonth) return 'Bulan itu belum terjadi 🤖';
+  const all = readTransactions_();
+  const month = monthRange_(target);
+  if (!between_(all, month).length) return 'Belum ada transaksi di ' + MONTHS_ID[Number(target.slice(5, 7)) - 1] + ' ' + target.slice(0, 4) + '.';
+  return monthRecapLines_(month, ctx, all).join('\n');
 }
 
 // unit: "minggu" or "bulan", for the message text.

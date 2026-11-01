@@ -27,6 +27,7 @@ const HELP_TEXT = [
   '› saldo semua akun? · saldo gopay?',
   '› berapa tabunganku sekarang?',
   '› 5 transaksi terakhir',
+  '› rekap bulan lalu · rekap september · rekap bulan ini',
   '',
   '⚙️ ATUR',
   '› tambah akun Bibit 5jt investasi',
@@ -39,7 +40,7 @@ const HELP_TEXT = [
   '› cek email (atau /email): transaksi baru dari email BNI/BCA, simpan setelah kamu setuju',
   '  (otomatis juga jam 9, 12, 15, 18, 21 · ubah dulu dengan "ubah no 2 jadi parkir motor")',
   '',
-  '⌨️ Jalan pintas (opsional): /saldo /akun /budget /kategori /terakhir /hapus /email',
+  '⌨️ Jalan pintas (opsional): /saldo /akun /budget /kategori /terakhir /hapus /rekap /email',
   '/whereami: id chat & topic (untuk setup)',
   '',
   '🛡️ Semua yang mengubah data minta konfirmasi ✅/❌ dulu (atau ketik "ya"/"batal").',
@@ -88,6 +89,8 @@ function handleCommand_(text, ctx) {
       return categoryCommand_(args, ctx);
     case '/budget':
       return budgetCommand_(args, ctx);
+    case '/rekap':
+      return monthRecapReply_(parseRecapMonth_(args), ctx);
     case '/email':
       return prepareEmailImport_(ctx);
     case '/terakhir':
@@ -97,6 +100,22 @@ function handleCommand_(text, ctx) {
     default:
       return 'Perintah tidak dikenal 🤖 Ketik /help.';
   }
+}
+
+// /rekap -> last month; /rekap september, /rekap sep 2025, /rekap 9, /rekap 2026-08, /rekap ini. Without a year, the
+// most recent such month that has started. Returns "YYYY-MM", null for last month, or "invalid".
+function parseRecapMonth_(args) {
+  const word = String(args[0] || '').toLowerCase();
+  if (!word || word === 'lalu') return null;
+  const today = todayStr_();
+  if (word === 'ini') return today.slice(0, 7);
+  const iso = word.match(/^(\d{4})-(\d{1,2})$/);
+  if (iso) return iso[1] + '-' + ('0' + iso[2]).slice(-2);
+
+  const month = /^\d{1,2}$/.test(word) ? Number(word) : (hasKey_(EMAIL_MONTHS, word.slice(0, 3)) ? EMAIL_MONTHS[word.slice(0, 3)] : 0);
+  if (month < 1 || month > 12) return 'invalid';
+  const year = /^\d{4}$/.test(args[1] || '') ? Number(args[1]) : Number(today.slice(0, 4)) - (month > Number(today.slice(5, 7)) ? 1 : 0);
+  return year + '-' + ('0' + month).slice(-2);
 }
 
 // /budget -> status; /budget makan 1,5jt -> set the monthly limit; /budget makan 0 -> remove it

@@ -138,6 +138,8 @@ function handleMessage_(msg, to) {
         const c = parsed.category_setup || {};
         r = c.name ? prepareCategory_(TYPES.indexOf(c.type) >= 0 ? c.type : 'expense', String(c.name).trim(), ctx)
           : categoryList_(ctx);
+      } else if (parsed.intent === 'recap') {
+        r = monthRecapReply_(parsed.recap_month, ctx);
       } else if (parsed.intent === 'email') {
         r = prepareEmailImport_(ctx);
       } else if (parsed.intent === 'help') {

@@ -58,6 +58,7 @@ Telegram with 200 itself and forwards the update to Apps Script.
 | `berapa total gofood bulan ini?` / `pengeluaran pake gopay minggu ini?` | Spending at a merchant (name contains the word) or from one account, with the count |
 | `saldo gopay?` / `berapa tabunganku sekarang?` / `investasiku?` | Current balances |
 | `5 transaksi terakhir` | Latest entries |
+| `rekap bulan lalu` / `rekap september` / `rekap bulan ini` | The monthly recap of that month (same as `/rekap`), no backup. A month name without a year is the most recent such month; the running month is marked "(berjalan)" and has no comparison. "Tabungan sekarang" is always today's balance |
 
 Amounts understand `35rb`, `35k`, `15jt`, `1,5jt`, `2.500.000`. Dates understand `kemarin`, `senin lalu`.
 
@@ -74,6 +75,7 @@ shortcuts that skip the Gemini call.
 | `/budget makan 1,5jt` / `/budget makan 0` / `/budget` | Set, remove, show monthly budgets |
 | `/kategori` / `/kategori expense Hobi` | List / add categories |
 | `/terakhir 10` | Latest entries with their ids |
+| `/rekap` / `/rekap september` / `/rekap sep 2025` / `/rekap 2026-08` / `/rekap ini` | Monthly recap of last month or the chosen month |
 | `/hapus a1b2c3d4` | Delete one transaction by id |
 | `/whereami` | Show chat, topic and user ids (setup) |
 
