@@ -58,6 +58,8 @@ Telegram with 200 itself and forwards the update to Apps Script.
 | `berapa total gofood bulan ini?` / `pengeluaran pake gopay minggu ini?` | Spending at a merchant (name contains the word) or from one account, with the count |
 | `saldo gopay?` / `berapa tabunganku sekarang?` / `investasiku?` | Current balances |
 | `5 transaksi terakhir` | Latest entries |
+| `tiap tanggal 25 biaya admin bca 12,5rb` / `gaji tiap tanggal 1 15jt masuk bca` | Add a recurring monthly entry (✅/❌ first). See Recurring entries |
+| `daftar rutin` / `hapus rutin biaya admin` | List / remove recurring entries |
 | `rekap bulan lalu` / `rekap september` / `rekap bulan ini` | The monthly recap of that month (same as `/rekap`), no backup. A month name without a year is the most recent such month; the running month is marked "(berjalan)" and has no comparison. "Tabungan sekarang" is always today's balance |
 
 Amounts understand `35rb`, `35k`, `15jt`, `1,5jt`, `2.500.000`. Dates understand `kemarin`, `senin lalu`.
@@ -75,6 +77,7 @@ shortcuts that skip the Gemini call.
 | `/budget makan 1,5jt` / `/budget makan 0` / `/budget` | Set, remove, show monthly budgets |
 | `/kategori` / `/kategori expense Hobi` | List / add categories |
 | `/terakhir 10` | Latest entries with their ids |
+| `/rutin` / `/rutin hapus <id>` | List / remove recurring entries (adding is by chat) |
 | `/rekap` / `/rekap september` / `/rekap sep 2025` / `/rekap 2026-08` / `/rekap ini` | Monthly recap of last month or the chosen month |
 | `/hapus a1b2c3d4` | Delete one transaction by id |
 | `/whereami` | Show chat, topic and user ids (setup) |
@@ -94,6 +97,20 @@ Scheduled messages (in the Finance topic, 09:00 WIB, each within the hour):
 | 1st of the month | Last month: the same totals, savings rate, budget results, an alert versus up to 3 earlier months, and a values-only backup of every tab into Google Drive > `finance-tracker backups` (old backups are kept) |
 
 Earlier periods from before tracking started are skipped, so they do not count as zero spending.
+
+## Recurring entries
+
+Monthly entries that repeat on a day of the month (bank admin fee, salary, subscriptions, instalments).
+
+- Add by chat: `tiap tanggal 25 biaya admin bca 12,5rb`, `gaji tiap tanggal 1 15jt masuk bca`. A ✅/❌ preview comes first;
+  the rule is stored in the `recurring` tab. A rule whose day has already passed this month starts next month.
+- Every day at 08:00 WIB (within the hour) the rules that are due this month come as one numbered batch to approve,
+  like the email batch: `ubah no 1 jadi 15rb` works before ✅, and nothing is written before it. Days 29-31 fall on
+  the last day of a shorter month. A month that was missed is not made up.
+- A rule whose entry is already in the sheet (same type, account, amount, within a day: typed by hand or imported from
+  an email) is skipped, not doubled. Nothing is sent on days when nothing is due; a failed run alerts once a day.
+- `daftar rutin` / `/rutin` lists the rules with their ids; `hapus rutin biaya admin` or `/rutin hapus <id>` removes one.
+  To change an amount, remove the rule and add it again.
 
 ## Bank emails (Gmail)
 
@@ -151,6 +168,7 @@ hand. Don't edit the tab itself: it is overwritten.
 | `categories` | `type, category` | The only categories Gemini may use. Edit rows or use `/kategori`. |
 | `accounts` | `account, opening_balance, current_balance, kind` | `current_balance` is a live SUMIFS formula. `kind` is bank, ewallet, cash, tabungan, investasi or lainnya, guessed from the name. |
 | `budgets` | `category, monthly_limit` | Expense categories only. |
+| `recurring` | `id, day, amount, type, category, account, to_account, merchant, note, last_month` | Recurring monthly rules; `last_month` is the month a rule was last settled. |
 | `email_log` | `message_id, bank, status, updated_at` | Handled bank emails (saved, skipped, duplicate, unsupported), so none is offered twice. |
 | `dashboard`, `dashboard_data` | generated | Rebuilt by `refreshDashboard()`; never edit by hand. |
 
@@ -179,6 +197,7 @@ Definitions used everywhere (bot answers and formulas agree):
 | `apps-script/Commands.gs` | Slash commands and `/help` text |
 | `apps-script/Gemini.gs` / `Prompt.gs` | Gemini call (structured JSON, retries) and the parsing prompt |
 | `apps-script/Reports.gs` | Scheduled weekly/monthly recaps, spending alert, monthly backup |
+| `apps-script/Recurring.gs` | Recurring monthly entries: rules, due batch, daily trigger |
 | `apps-script/Gmail.gs` / `EmailParse.gs` | Bank email import (Gmail API, read-only), batch approval; one regex parser per email template |
 | `apps-script/Dashboard.gs` | Generated `dashboard` tab with tables and charts |
 | `apps-script/Persona.gs` | Emoji and robot lines |

@@ -6,8 +6,17 @@ const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
   properties: {
-    intent: { type: 'STRING', enum: ['log', 'correct', 'delete', 'query', 'account', 'budget', 'category', 'help', 'email', 'recap', 'other'] },
+    intent: { type: 'STRING', enum: ['log', 'correct', 'delete', 'query', 'account', 'budget', 'category', 'help', 'email', 'recap', 'recurring', 'other'] },
     recap_month: { type: 'STRING', nullable: true },
+    recurring: {
+      type: 'OBJECT',
+      nullable: true,
+      properties: {
+        action: { type: 'STRING', enum: ['add', 'list', 'remove'] },
+        day: { type: 'INTEGER', nullable: true },
+        match: { type: 'STRING', nullable: true },
+      },
+    },
     delete_id: { type: 'STRING', nullable: true },
     transactions: {
       type: 'ARRAY',

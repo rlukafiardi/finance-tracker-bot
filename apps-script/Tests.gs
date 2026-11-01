@@ -274,3 +274,28 @@ function runEmailImportTests() {
   });
   console.log(pass + '/' + checks.length + ' passed');
 }
+
+// ---- Recurring entries: due dates ------------------------------------------------------------------------
+
+function runRecurringTests() {
+  const item = function (day, lastMonth) { return { day: day, lastMonth: lastMonth || '' }; };
+  const checks = [
+    ['day 25 in October', dueDate_(25, '2026-10') === '2026-10-25'],
+    ['day 31 in a 30-day month', dueDate_(31, '2026-11') === '2026-11-30'],
+    ['day 31 in February', dueDate_(31, '2027-02') === '2027-02-28'],
+    ['day 30 in a leap February', dueDate_(30, '2028-02') === '2028-02-29'],
+    ['not due before its day', isRecurringDue_(item(25), '2026-10-24') === false],
+    ['due on its day', isRecurringDue_(item(25), '2026-10-25') === true],
+    ['still due later in the month', isRecurringDue_(item(25), '2026-10-30') === true],
+    ['not due again once settled this month', isRecurringDue_(item(25, '2026-10'), '2026-10-30') === false],
+    ['due again next month', isRecurringDue_(item(25, '2026-10'), '2026-11-25') === true],
+    ['day 31 is due on 30 Nov', isRecurringDue_(item(31), '2026-11-30') === true],
+    ['after a gap only the current month is offered', isRecurringDue_(item(25, '2026-08'), '2026-10-26') === true],
+  ];
+  let pass = 0;
+  checks.forEach(function (c) {
+    console.log((c[1] ? 'PASS ' : 'FAIL ') + c[0]);
+    if (c[1]) pass++;
+  });
+  console.log(pass + '/' + checks.length + ' passed');
+}

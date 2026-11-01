@@ -138,6 +138,8 @@ function handleMessage_(msg, to) {
         const c = parsed.category_setup || {};
         r = c.name ? prepareCategory_(TYPES.indexOf(c.type) >= 0 ? c.type : 'expense', String(c.name).trim(), ctx)
           : categoryList_(ctx);
+      } else if (parsed.intent === 'recurring') {
+        r = prepareRecurring_(parsed.recurring, parsed.transactions || [], ctx);
       } else if (parsed.intent === 'recap') {
         r = monthRecapReply_(parsed.recap_month, ctx);
       } else if (parsed.intent === 'email') {
@@ -149,7 +151,7 @@ function handleMessage_(msg, to) {
       } else if (parsed.intent === 'correct') {
         const pending = getPending_();
         const byId = parsed.correction && parsed.correction.id;
-        r = pending && (pending.action.kind === 'log' || pending.action.kind === 'emails') && !byId
+        r = pending && ['log', 'emails', 'recurring_due'].indexOf(pending.action.kind) >= 0 && !byId
           ? prepareEditPending_(pending, parsed.correction, ctx)
           : prepareCorrect_(parsed.correction, ctx);
       } else if (parsed.intent === 'query') {

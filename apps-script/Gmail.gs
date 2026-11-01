@@ -391,13 +391,14 @@ function dumpFailedSamples() {
   });
 }
 
-// A failed run tells the topic once per day (a persistent failure would otherwise repeat at every run).
-function alertEmailFailure_(err) {
+// A failed scheduled job tells the topic once per day (a persistent failure would otherwise repeat at every run).
+// job names the script property (<JOB>_ALERT_DATE), label is the text in the message.
+function alertJobFailure_(job, label, err) {
   const props = PropertiesService.getScriptProperties();
   const today = todayStr_();
-  if (props.getProperty('EMAIL_ALERT_DATE') === today) return;
-  props.setProperty('EMAIL_ALERT_DATE', today);
-  sendMessage_(reportTarget_(), '⚠️ Cek email gagal: ' + String(err && err.message).slice(0, 200) +
+  if (props.getProperty(job + '_ALERT_DATE') === today) return;
+  props.setProperty(job + '_ALERT_DATE', today);
+  sendMessage_(reportTarget_(), '⚠️ ' + label + ' gagal: ' + String(err && err.message).slice(0, 200) +
     '\nSaya coba lagi di jadwal berikutnya. Detail: Apps Script > Executions.');
 }
 
@@ -415,7 +416,7 @@ function scheduledEmailImport() {
     else if (!r.quiet || (r.idle && lastRun)) sendMessage_(to, r.reply);
   } catch (err) {
     console.error(err && err.stack ? err.stack : err);
-    alertEmailFailure_(err);
+    alertJobFailure_('EMAIL', 'Cek email', err);
     throw err;
   } finally {
     if (lock.hasLock()) lock.releaseLock();

@@ -88,6 +88,7 @@ function resolvePending_(to, p, confirmed, viaButton) {
     }
   } else {
     if (p.action.kind === 'emails') settleEmails_(p.action, 'skipped');
+    if (p.action.kind === 'recurring_due') settleRecurring_(p.action);
     result = '❌ ' + line_('cancelled');
   }
 
@@ -108,6 +109,9 @@ function runAction_(action) {
     case 'account': return commitAccount_(action);
     case 'rename': return commitRename_(action);
     case 'emails': return commitEmails_(action);
+    case 'recurring_add': return commitRecurringAdd_(action);
+    case 'recurring_remove': return commitRecurringRemove_(action);
+    case 'recurring_due': return commitRecurringDue_(action);
     case 'category': return commitCategory_(action);
     case 'budget': return commitBudget_(action);
     default: throw new Error('unknown action ' + action.kind);

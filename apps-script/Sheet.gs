@@ -324,7 +324,7 @@ function prepareEditPending_(pending, corr, ctx) {
   const newCategories = a.txs.map(function (t) { return newCategoryFor_(t, ctx); }).filter(function (c, i, all) {
     return c && all.findIndex(function (d) { return d && d.type === c.type && d.label === c.label; }) === i;
   });
-  if (a.kind === 'emails') a.newCategories = newCategories;
+  if (a.kind === 'emails' || a.kind === 'recurring_due') a.newCategories = newCategories;
   else a.newCategory = newCategories[0] || null;
   a.newAccounts = [];
   a.txs.forEach(function (t) {
@@ -333,7 +333,8 @@ function prepareEditPending_(pending, corr, ctx) {
           !a.newAccounts.some(function (x) { return x.toLowerCase() === name.toLowerCase(); })) a.newAccounts.push(name);
     });
   });
-  return { action: a, preview: a.kind === 'emails' ? emailBatchPreview_(a) : logPreview_(a) };
+  const preview = a.kind === 'emails' ? emailBatchPreview_(a) : a.kind === 'recurring_due' ? recurringBatchPreview_(a) : logPreview_(a);
+  return { action: a, preview: preview };
 }
 
 function sameName_(a, b) {

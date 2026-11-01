@@ -29,6 +29,10 @@ const HELP_TEXT = [
   '› 5 transaksi terakhir',
   '› rekap bulan lalu · rekap september · rekap bulan ini',
   '',
+  '🔁 RUTIN',
+  '› tiap tanggal 25 biaya admin bca 12,5rb · gaji tiap tanggal 1 15jt masuk bca',
+  '› daftar rutin · hapus rutin biaya admin (tiap pagi jam 8 yang jatuh tempo diajukan untuk disetujui)',
+  '',
   '⚙️ ATUR',
   '› tambah akun Bibit 5jt investasi',
   '› saldo awal BCA 10jt · BCA itu tabungan',
@@ -40,7 +44,7 @@ const HELP_TEXT = [
   '› cek email (atau /email): transaksi baru dari email BNI/BCA, simpan setelah kamu setuju',
   '  (otomatis juga jam 9, 12, 15, 18, 21 · ubah dulu dengan "ubah no 2 jadi parkir motor")',
   '',
-  '⌨️ Jalan pintas (opsional): /saldo /akun /budget /kategori /terakhir /hapus /rekap /email',
+  '⌨️ Jalan pintas (opsional): /saldo /akun /budget /kategori /terakhir /hapus /rekap /rutin /email',
   '/whereami: id chat & topic (untuk setup)',
   '',
   '🛡️ Semua yang mengubah data minta konfirmasi ✅/❌ dulu (atau ketik "ya"/"batal").',
@@ -89,6 +93,8 @@ function handleCommand_(text, ctx) {
       return categoryCommand_(args, ctx);
     case '/budget':
       return budgetCommand_(args, ctx);
+    case '/rutin':
+      return recurringCommand_(args);
     case '/rekap':
       return monthRecapReply_(parseRecapMonth_(args), ctx);
     case '/email':

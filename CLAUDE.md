@@ -155,6 +155,12 @@ and the dashboard answers "how much did I spend / save this month".
 - 2026-11-01: Monthly recap on demand (my request): `/rekap [bulan] [tahun]` and chat intent `recap` (`recap_month`
   YYYY-MM, null = last month). Same builder as the scheduled one (`monthRecapLines_`), read-only (no backup). The
   recap now lists every category, one per line with its share; the weekly one keeps the top 3 plus a rest line.
+- 2026-11-01: Recurring monthly entries (my request, from the backlog): chat "tiap tanggal 25 biaya admin bca 12,5rb"
+  (intent `recurring`, rule in the `recurring` tab, ✅/❌ to add or remove). My picks: approve each month with the same
+  ✅/❌ batch as emails (not auto-posted), monthly only. `scheduledRecurring` runs daily 08:00 WIB, silent when nothing
+  is due; a rule created after its day starts next month; a missed month is not made up; an entry already in the sheet
+  is skipped as a duplicate (`isDuplicateTx_`), so an imported bank email and a rule never double. Failure alerts
+  generalized into `alertJobFailure_`. Run `installSchedules()` once after deploy to add the trigger.
 
 ## Status
 - Works (2026-10-28, tested by me end to end): live in my private Telegram group,

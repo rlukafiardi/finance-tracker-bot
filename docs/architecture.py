@@ -34,15 +34,21 @@ d.arrow([(492, 58), (1510, 58), (1510, 218), (1558, 218)], 'rebuild dashboard ta
 d.box(980, 60, 190, 56, 'service', 'GMAIL', 'BNI · BCA notifications')
 d.box(1230, 150, 200, 56, 'code', 'EMAIL IMPORT', 'parse · dedupe · category')
 d.arrow([(1172, 88), (1195, 88), (1195, 165), (1228, 165)], 'read-only', at=(1128, 126), style='dotted')
-d.arrow([(145, 155), (145, 240), (1210, 240), (1210, 191), (1228, 191)], 'email · 09 12 15 18 21 · /email', at=(700, 222))
+d.arrow([(145, 155), (145, 240), (1210, 240), (1210, 191), (1228, 191)], 'email 09 12 15 18 21 · /email', at=(540, 222))
 d.arrow([(1390, 208), (1390, 343)], 'batch preview', at=(1290, 262))
 d.arrow([(1432, 185), (1470, 185), (1470, 298), (1558, 298)], 'handled ids', at=(1474, 304), style='dotted')
+
+# Recurring entries: a daily trigger proposes the rules that are due; the batch joins the same approval flow
+d.box(760, 150, 200, 56, 'code', 'RECURRING', 'due rules · daily 08')
+d.arrow([(860, 240), (860, 208)])
+d.arrow([(962, 178), (990, 178), (990, 222), (1388, 222)])
 
 # The Sheet spans both lanes, its tabs inside
 d.cylinder(1540, 110, 240, 680, 'store', title='Google Sheet')
 d.box(1560, 190, 200, 56, 'output', 'dashboard', 'KPI cards · charts · bars')
 d.box(1560, 270, 200, 56, 'plain', 'email_log', 'handled bank emails')
 d.box(1560, 350, 200, 56, 'plain', 'categories · budgets')
+d.box(1560, 430, 200, 56, 'plain', 'recurring', 'monthly rules')
 d.box(1560, 511, 200, 56, 'plain', 'accounts', 'live balance formula')
 d.box(1560, 672, 200, 56, 'plain', 'transactions', 'one row per entry')
 
@@ -74,6 +80,7 @@ d.arrow([(1390, 417), (1390, 503)], 'preview ✅/❌', at=(1398, 452))
 d.arrow([(1390, 577), (1390, 663)])
 d.arrow([(1242, 700), (1298, 700)], 'confirm', at=(1248, 682))
 d.arrow([(1482, 378), (1558, 378)], 'read', at=(1500, 360), style='dotted')
+d.arrow([(1482, 400), (1520, 400), (1520, 458), (1558, 458)], style='dotted')
 d.arrow([(1482, 700), (1558, 700)], 'write', at=(1500, 682))
 d.arrow([(1390, 737), (1390, 850), (1242, 850)])
 d.arrow([(1058, 850), (90, 850), (90, 556)], 'preview · answer · result · recap', at=(420, 856), style='dashed')
