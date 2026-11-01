@@ -173,12 +173,25 @@ and the dashboard answers "how much did I spend / save this month".
   refresh schedule checked by me in live use.
 - 2026-10-28: merchant/account lookups, correct by id and admin-fee buttons live (deployment @18), checked by me
   in Telegram along with the dashboard fixes.
-- 2026-10-31: Gmail import live (deployment @32): BNI and BCA notification emails (QRIS, Virtual Account, PLN token,
-  e-wallet top-ups, transfers, BCA transfers) become one numbered batch to approve with ✅/❌, at 09, 12, 15, 18
-  and 21 WIB and on `/email`; silent when nothing is new except one line at 21:00; a failed run alerts once a day.
-  Audit of 90 days: 130 of 130 emails parsed. Not imported on purpose: `Kode tarik tunai` (I type withdrawals).
-  Re-check parsers against old mail with `auditEmails()` / `dumpFailedSamples()`.
-- Feature backlog (my picks, not scheduled): recurring entries; receipt photos and voice notes via Gemini multimodal; savings goals. Other ideas I
-  liked less: runway and forecast, net worth, debts and split bills, bill reminders, duplicate and large-expense
-  warnings, streaks, monthly PDF. WhatsApp Cloud API is parked as a possible second channel.
+- 2026-10-31: Gmail import live: BNI and BCA notification emails (QRIS, Virtual Account, PLN token, e-wallet top-ups,
+  transfers, BCA transfers) become one numbered batch to approve with ✅/❌, at 09, 12, 15, 18 and 21 WIB and on
+  `/email`; silent when nothing is new except one line at 21:00; a failed run alerts once a day. Audit of 90 days:
+  130 of 130 emails parsed. Not imported on purpose: `Kode tarik tunai` (I type withdrawals). Re-check parsers
+  against old mail with `auditEmails()` / `dumpFailedSamples()`. The batch flow was checked by me in Telegram (2026-11-01).
+- 2026-11-01: Monthly recap on demand (`/rekap`, "rekap bulan lalu", "rekap september") checked by me in Telegram.
+  The recaps list every category, one line each (weekly: top 3 plus a rest line).
+- 2026-11-01: Recurring monthly entries live (`Recurring.gs`, tab `recurring`, trigger `scheduledRecurring` daily
+  08:00, installed by me). Added and removed by chat or `/rutin`, due items approved as a batch like emails. The first
+  real due batch has not been seen yet. Current deployment: @35. `runExamples()` was not re-run after the newest
+  intents (my call: not needed).
+- Ideas (state, newest decisions last):
+  - recurring entries: done (monthly only)
+  - monthly recap for a chosen month: done
+  - receipt photos and voice notes via Gemini multimodal: open (my pick)
+  - savings goals: open (my pick)
+  - admin-fee buttons put the fee on the wallet account for ShopeePay / OVO top-ups typed by hand: open, waiting for my answer
+  - weekly and yearly recurrences, changing a rule's amount without removing it: open, not needed yet
+  - runway and forecast, net worth, debts and split bills, bill reminders, large-expense warnings, streaks, monthly PDF: open, liked less
+  - cash-withdrawal code emails: dropped (I type withdrawals)
+  - WhatsApp Cloud API as a second channel: parked
 - Next: IDX technical analysis as its own project in another topic, with topic routing added to `relay/worker.js`.
