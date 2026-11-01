@@ -85,7 +85,9 @@ shortcuts that skip the Gemini call.
 After a single transfer is saved, the reply asks 🏧 "Ada biaya admin?" with buttons + 1 rb (e-wallet top up),
 + 2,5 rb (BI-FAST), + 6,5 rb (online transfer) and 🆓 Gratis. A tap logs the fee right away as an expense on the
 source account, category `Biaya Admin` (or `Lainnya` if that category does not exist), and `hapus yang tadi` then
-removes the transfer and the fee together. Amounts are `FEE_PRESETS` in `Fees.gs`.
+removes the transfer and the fee together. Amounts are `FEE_PRESETS` in `Fees.gs`. For a top-up into a wallet that
+takes the fee itself (ShopeePay 500, OVO 1.000: `WALLET_DEDUCTED_FEES` in `EmailParse.gs`) there is one button with
+that fee, booked on the wallet account (its balance is what the app shows), and 🆓 Gratis.
 
 Budget warnings appear on every expense in a category once it reaches 80% (⚠️) or 100% (🚨) of this month's limit.
 

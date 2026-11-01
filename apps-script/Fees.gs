@@ -7,13 +7,21 @@ const FEE_CATEGORY = 'Biaya Admin';     // falls back to Lainnya until this cate
 const FEE_QUESTION = '🏧 Ada biaya admin?';
 
 // Buttons for a log action with exactly one transfer and no expense already logged with it (a fee typed in the
-// same message, "admin 2,5rb", arrives as such an expense). Null otherwise.
+// same message, "admin 2,5rb", arrives as such an expense). Null otherwise. A transfer into a wallet that takes the
+// fee itself (WALLET_DEDUCTED_FEES: ShopeePay, OVO) gets one button with that fee, booked on the wallet account.
 function feeButtons_(action) {
   if (action.kind !== 'log') return null;
   const transfers = action.txs.filter(function (t) { return t.type === 'transfer'; });
   const expenses = action.txs.filter(function (t) { return t.type === 'expense'; });
   if (transfers.length !== 1 || expenses.length) return null;
   const id = transfers[0].id;
+  const walletFee = walletDeductedFee_(transfers[0].to_account);
+  if (walletFee > 0) {
+    return [
+      [{ text: '+ ' + compactRp_(walletFee).replace('Rp ', '') + ' di ' + transfers[0].to_account, callback_data: 'fee:' + id + ':' + walletFee + ':w' }],
+      [{ text: '🆓 Gratis', callback_data: 'fee:' + id + ':0' }],
+    ];
+  }
   return [
     FEE_PRESETS.map(function (fee) {
       return { text: '+ ' + compactRp_(fee).replace('Rp ', ''), callback_data: 'fee:' + id + ':' + fee };
@@ -48,10 +56,12 @@ function handleFeeCallback_(cb, to, parts) {
   }
   const transfer = rowToTx_(row);
   const cats = getCategories_().expense;
+  const onWallet = parts[3] === 'w'; // the wallet takes the fee from the money it received
   const tx = {
     date: transfer.date, amount: fee, type: 'expense',
     category: cats.indexOf(FEE_CATEGORY) >= 0 ? FEE_CATEGORY : 'Lainnya',
-    account: transfer.account, merchant: '', note: 'admin transfer ke ' + transfer.to_account, to_account: '',
+    account: onWallet ? transfer.to_account : transfer.account, merchant: '',
+    note: onWallet ? 'biaya top-up, dipotong dompet' : 'admin transfer ke ' + transfer.to_account, to_account: '',
   };
   sh.appendRow([Utilities.getUuid().slice(0, 8), row[1], tx.amount, tx.type, tx.category, tx.account, tx.merchant,
     tx.note, row[8], row[9], tx.to_account]);

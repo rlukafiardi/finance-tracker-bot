@@ -299,3 +299,27 @@ function runRecurringTests() {
   });
   console.log(pass + '/' + checks.length + ' passed');
 }
+
+// ---- Admin-fee buttons ---------------------------------------------------------------------------------------
+
+function runFeeTests() {
+  const log = function (txs) { return { kind: 'log', txs: txs }; };
+  const transfer = function (to) { return { id: 'abc12345', type: 'transfer', account: 'BNI', to_account: to }; };
+  const flat = function (b) { return b ? [].concat.apply([], b).map(function (x) { return x.text + '|' + x.callback_data; }) : null; };
+  const checks = [
+    ['bank transfer keeps the presets', flat(feeButtons_(log([transfer('BCA')]))).length === 4],
+    ['GoPay (fee shown by the bank) keeps the presets', flat(feeButtons_(log([transfer('GoPay')]))).length === 4],
+    ['ShopeePay: one fee button on the wallet + Gratis', JSON.stringify(flat(feeButtons_(log([transfer('ShopeePay')])))) ===
+      JSON.stringify(['+ 500 di ShopeePay|fee:abc12345:500:w', '🆓 Gratis|fee:abc12345:0'])],
+    ['OVO fee is 1.000', flat(feeButtons_(log([transfer('OVO')])))[0] === '+ 1 rb di OVO|fee:abc12345:1000:w'],
+    ['name with a space still matches', flat(feeButtons_(log([transfer('Shopee Pay')]))).length === 2],
+    ['no buttons when an expense came with the transfer', feeButtons_(log([transfer('OVO'), { type: 'expense' }])) === null],
+    ['no buttons for other actions', feeButtons_({ kind: 'emails', txs: [transfer('OVO')] }) === null],
+  ];
+  let pass = 0;
+  checks.forEach(function (c) {
+    console.log((c[1] ? 'PASS ' : 'FAIL ') + c[0]);
+    if (c[1]) pass++;
+  });
+  console.log(pass + '/' + checks.length + ' passed');
+}
