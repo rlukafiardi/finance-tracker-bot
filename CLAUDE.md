@@ -43,8 +43,10 @@ and the dashboard answers "how much did I spend / save this month".
   The recaps list every category, one line each (weekly: top 3 plus a rest line).
 - 2026-11-01: Recurring monthly entries live (`Recurring.gs`, tab `recurring`, trigger `scheduledRecurring` daily
   08:00, installed by me). Added and removed by chat or `/rutin`, due items approved as a batch like emails. The first
-  real due batch has not been seen yet. Current deployment: @35. `runExamples()` was not re-run after the newest
+  real due batch has not been seen yet. Current deployment: @37. `runExamples()` was not re-run after the newest
   intents (my call: not needed).
+- 2026-11-02: While a ✅/❌ confirmation waits, a bare fragment ("pake bni ya", "kategorinya transport") corrects it by chat:
+  the pending entry is passed to Gemini (`pendingPromptLines_`). Deployed @37, not yet checked by me in Telegram.
 - Ideas (state, newest decisions last):
   - recurring entries: done (monthly only)
   - monthly recap for a chosen month: done
