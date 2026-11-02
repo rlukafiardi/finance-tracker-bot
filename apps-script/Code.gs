@@ -114,7 +114,7 @@ function handleMessage_(msg, to) {
   try {
     if (handleConfirmText_(to, msg.text)) return;
 
-    const ctx = { cats: getCategories_(), accounts: getAccounts_() };
+    const ctx = { cats: getCategories_(), accounts: getAccounts_(), pending: getPending_() };
     let r;
     if (msg.text.charAt(0) === '/') {
       r = handleCommand_(msg.text, ctx);

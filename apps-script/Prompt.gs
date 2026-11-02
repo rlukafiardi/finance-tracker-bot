@@ -1,5 +1,5 @@
 // Gemini system prompt. Source of truth for the parsing rules.
-// ctx = { cats: {expense, income, saving}, accounts: [{name, opening}] }
+// ctx = { cats: {expense, income, saving}, accounts: [{name, opening}], pending: the waiting confirmation or null }
 
 function buildPrompt_(today, ctx) {
   const categoryLines = TYPES.map(function (t) {
@@ -80,10 +80,27 @@ function buildPrompt_(today, ctx) {
     '  max 15 words, at most one emoji. React to what the user did: tease gently about jajan, cheer for gaji or nabung,',
     '  sympathize with tagihan. Never include amounts or numbers and never give financial advice.',
     '- reply_hint: when used, write it in the same playful robot voice.',
+    pendingPromptLines_(ctx.pending),
     '',
     'Allowed categories:',
     categoryLines,
     '',
     'Known accounts: ' + accountList,
+  ].join('\n');
+}
+
+// While a log or batch waits for ✅/❌, a message that only names an account, category, amount or date edits it.
+// Merchants are left out: they can be third-party names from emails.
+function pendingPromptLines_(pending) {
+  if (!pending || ['log', 'emails', 'recurring_due'].indexOf(pending.action.kind) < 0) return '';
+  const items = pending.action.txs.map(function (t, i) {
+    return (i + 1) + '. ' + [t.amount, t.type, t.category, t.account, t.date].filter(Boolean).join(', ');
+  });
+  return [
+    '',
+    'A confirmation is waiting for these entries (not saved yet):',
+    items.join('\n'),
+    'A message that only gives a new account, category, amount or date for them ("pake bni ya", "kategorinya transport",',
+    '"jadi 40rb", "kemarin") is intent "correct" with those fields in `correction`, not a new log and not "other".',
   ].join('\n');
 }
