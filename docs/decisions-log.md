@@ -148,3 +148,5 @@ Search it with grep for the term in question; never load it whole. New entries a
   is due; a rule created after its day starts next month; a missed month is not made up; an entry already in the sheet
   is skipped as a duplicate (`isDuplicateTx_`), so an imported bank email and a rule never double. Failure alerts
   generalized into `alertJobFailure_`. Run `installSchedules()` once after deploy to add the trigger.
+- 2026-11-02: Public-repo history rewritten (owner's go): all 61 commits now carry the GitHub noreply address as author and committer, and 3 old README lines that named the owner's Google account email were reworded (`git filter-branch` in a fresh clone, force-push with a lease; final files, messages and dates unchanged; 0 forks and 0 stars, so nothing else broke). Verified on GitHub (all authors and committers noreply, README clean). Limits: old commits stay fetchable by SHA until GitHub garbage-collects them, and earlier clones keep them; a mirror backup of the old history sits only in the session scratchpad. Same done for the showcase repo of the house-price project. New commits in both use the noreply address (local `git config user.email`).
+
