@@ -290,6 +290,8 @@ function runRecurringTests() {
     ['not due again once settled this month', isRecurringDue_(item(25, '2026-10'), '2026-10-30') === false],
     ['due again next month', isRecurringDue_(item(25, '2026-10'), '2026-11-25') === true],
     ['day 31 is due on 30 Nov', isRecurringDue_(item(31), '2026-11-30') === true],
+    ['a date cell reads back as its month', monthCell_(new Date(2026, 10, 1)) === '2026-11'],
+    ['a text cell is kept', monthCell_('2026-11') === '2026-11' && monthCell_('') === ''],
     ['after a gap only the current month is offered', isRecurringDue_(item(25, '2026-08'), '2026-10-26') === true],
   ];
   let pass = 0;

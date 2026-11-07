@@ -14,7 +14,13 @@ function recurringSheet_() {
     sh.getRange(1, 1, 1, RECURRING_HEADERS.length).setValues([RECURRING_HEADERS]);
     sh.setFrozenRows(1);
   }
+  sh.getRange(1, RECURRING_HEADERS.length, sh.getMaxRows(), 1).setNumberFormat('@');
   return sh;
+}
+
+// Sheets turns a typed "2026-11" into a date cell, and getValues() then returns a Date.
+function monthCell_(v) {
+  return v instanceof Date ? Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM') : String(v);
 }
 
 function getRecurring_() {
@@ -25,7 +31,7 @@ function getRecurring_() {
     .map(function (r) {
       return {
         id: String(r[0]), day: Number(r[1]), amount: Number(r[2]), type: String(r[3]), category: String(r[4]),
-        account: String(r[5]), to_account: String(r[6]), merchant: String(r[7]), note: String(r[8]), lastMonth: String(r[9]),
+        account: String(r[5]), to_account: String(r[6]), merchant: String(r[7]), note: String(r[8]), lastMonth: monthCell_(r[9]),
       };
     });
 }
