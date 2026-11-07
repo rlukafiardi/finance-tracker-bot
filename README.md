@@ -206,6 +206,8 @@ Definitions used everywhere (bot answers and formulas agree):
 | `apps-script/Telegram.gs` | Bot API helpers; replies stay in the topic |
 | `apps-script/Setup.gs` | `setup()`, webhook helpers, `checkConfig()` |
 | `apps-script/Tests.gs` | `runExamples()`: 40 messages with expected parses |
+| `apps-script/appsscript.json` | Apps Script manifest (scopes, runtime) |
+| `scripts/check-refs.js` | Fails `npm run check` when a `.gs` file calls an undefined function |
 | `relay/worker.js` | Cloudflare Worker relay |
 | `docs/` | Architecture diagram: `architecture.py` (source), `.excalidraw` and `.svg` (generated) |
 | `CLAUDE.md` | Project notes: decisions and status |
