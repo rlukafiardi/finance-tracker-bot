@@ -24,6 +24,7 @@ and the dashboard answers "how much did I spend / save this month".
 - Schedules: weekly recap (Monday 09:00) and monthly recap (1st, 09:00 WIB), recurring monthly entries approved as a batch (daily 08:00 check), failure alerts once a day; run `installSchedules()` once after a deploy that adds a trigger.
 
 ## Status
+- Tooling (2026-11-14): pre-commit via `.githooks/` (after a fresh clone: `git config core.hooksPath .githooks`): gitleaks, large-file and merge-conflict checks; Dependabot monthly (npm, pre-commit). No GitHub Actions CI while the account has a billing lock. Check: `npm run check`.
 - Works (2026-10-28, tested by me end to end): live in my private Telegram group,
   topic 💰 Finance (id 2), group only (ALLOWED_CHAT_ID has just the group; private chat answers /whereami only).
   Scheduled weekly/monthly recaps installed and confirmed working. Webhook through the Cloudflare relay; `npm run deploy` ships
