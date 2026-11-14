@@ -76,7 +76,7 @@ function categoryLines_(byCat, total, n) {
 function totalsLines_(s, topN) {
   const lines = ['💸 Pengeluaran: ' + rupiah_(s.expense)];
   if (s.expense) lines.push.apply(lines, categoryLines_(s.byCat, s.expense, topN));
-  lines.push('💰 Pemasukan: ' + rupiah_(s.income), '⚖️ Sisa: ' + rupiah_(s.kept));
+  lines.push('💰 Pemasukan: ' + rupiah_(s.income));
   return lines;
 }
 
@@ -114,7 +114,6 @@ function monthRecapLines_(month, ctx, all) {
   const title = MONTHS_ID[Number(month.from.slice(5, 7)) - 1] + ' ' + month.from.slice(0, 4) + (running ? ' (berjalan)' : '');
 
   const lines = ['📆 Rekap bulan ' + title, ''].concat(totalsLines_(s, Infinity), tabunganLine_(ctx));
-  if (s.income > 0) lines.push('📈 Savings rate: ' + ((s.income - s.expense) / s.income * 100).toFixed(1) + '%');
   if (!running) lines.push('', spendingAlert_(s, pastPeriods_(all, month, 3, prevMonth_), 'bulan'));
 
   const budgets = getBudgets_();

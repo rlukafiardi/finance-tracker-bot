@@ -120,6 +120,11 @@ function handleMessage_(msg, to) {
       r = handleCommand_(msg.text, ctx);
     } else {
       const parsed = parseMessage_(msg.text, null, ctx);
+      const mismatch = amountProblem_(msg.text, parsed);
+      if (mismatch) {
+        sendMessage_(to, mismatch);
+        return;
+      }
       const quip = parsed.quip ? '\n\n🤖 ' + parsed.quip : '';
       if (parsed.intent === 'log') {
         r = prepareLog_(parsed.transactions || [], msg.text, ctx, parsed.reply_hint);

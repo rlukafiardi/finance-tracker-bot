@@ -110,8 +110,11 @@ function commitRecurringAdd_(a) {
   const ym = today.slice(0, 7);
   const id = Utilities.getUuid().slice(0, 8);
   const t = a.tx;
-  recurringSheet_().appendRow([id, a.day, t.amount, t.type, t.category, t.account, t.to_account, t.merchant, t.note,
-    dueDate_(a.day, ym) <= today ? ym : '']);
+  const sh = recurringSheet_();
+  const at = sh.getLastRow() + 1;
+  sh.getRange(at, 8, 1, 2).setNumberFormat('@'); // merchant and note stay text, never formulas
+  sh.getRange(at, 1, 1, RECURRING_HEADERS.length).setValues([[id, a.day, t.amount, t.type, t.category, t.account,
+    t.to_account, t.merchant, t.note, dueDate_(a.day, ym) <= today ? ym : '']]);
   return '✅ Rutin tiap tanggal ' + a.day + ' tersimpan (id ' + id + ').' +
     (dueDate_(a.day, ym) <= today ? '\nBulan ini dilewati karena tanggalnya sudah lewat.' : '');
 }

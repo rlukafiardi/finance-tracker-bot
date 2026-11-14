@@ -63,8 +63,10 @@ function handleFeeCallback_(cb, to, parts) {
     account: onWallet ? transfer.to_account : transfer.account, merchant: '',
     note: onWallet ? 'biaya top-up, dipotong dompet' : 'admin transfer ke ' + transfer.to_account, to_account: '',
   };
-  sh.appendRow([Utilities.getUuid().slice(0, 8), row[1], tx.amount, tx.type, tx.category, tx.account, tx.merchant,
-    tx.note, row[8], row[9], tx.to_account]);
+  const at = sh.getLastRow() + 1;
+  sh.getRange(at, 7, 1, 3).setNumberFormat('@'); // merchant, note, raw_message stay text, never formulas
+  sh.getRange(at, 1, 1, SHEET_HEADERS.length).setValues([[Utilities.getUuid().slice(0, 8), row[1], tx.amount, tx.type,
+    tx.category, tx.account, tx.merchant, tx.note, row[8], row[9], tx.to_account]]);
 
   answerCallback_(cb.id, 'Biaya admin dicatat');
   editMessage_(to.chatId, cb.message.message_id, text + '\n\n➕ ' + describe_(tx) + budgetWarnings_([tx]));

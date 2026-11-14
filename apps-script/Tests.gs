@@ -101,7 +101,9 @@ function runExamples() {
   EXAMPLES.forEach(function (ex, i) {
     let problems;
     try {
-      problems = diff_(ex.expect, parseMessage_(ex.message, EXAMPLES_TODAY, ctx));
+      const got = parseMessage_(ex.message, EXAMPLES_TODAY, ctx);
+      problems = diff_(ex.expect, got);
+      if (amountProblem_(ex.message, got)) problems.push('amount not written in the message');
     } catch (err) {
       problems = ['error: ' + err.message];
     }

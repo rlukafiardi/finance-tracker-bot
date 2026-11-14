@@ -13,7 +13,6 @@ const FONT = 'Inter';
 // which is why every number is also printed in the cards and tables.
 const COLOR_INCOME = '#6da7ec';
 const COLOR_EXPENSE = '#ee9468';
-const COLOR_SISA = '#55c29b';
 const COLOR_NEUTRAL = '#8b87b8';
 const INK = '#0b0b0b';
 const INK2 = '#52514e';
@@ -22,11 +21,10 @@ const HEADER_BG = '#dfe7f8';
 const GOOD = '#0ca30c';
 const WARN = '#fab219';
 const CRIT = '#d03b3b';
-const CARD_BG = { expense: '#fdeee5', income: '#e5f0fd', sisa: '#e3f6ee', rate: '#eeeaf9', tabungan: '#fdf4d9' };
+const CARD_BG = { expense: '#fdeee5', income: '#e5f0fd', tabungan: '#fdf4d9' };
 
 // Columns A..P: margin, five two-column cards separated by narrow gaps, margin.
 const GRID_COLS = [16, 105, 105, 12, 105, 105, 12, 105, 105, 12, 105, 105, 12, 105, 105, 16];
-const CARD_COLS = [2, 5, 8, 11, 14];
 const LEFT_COL = 2;  // chart blocks: B..I (654px) on the left, K..O (432px) on the right
 const RIGHT_COL = 11;
 const LEFT_W = 654;
@@ -102,13 +100,12 @@ function dashboardData_(all, ctx, today, weekStart, budgets) {
   };
 
   const unit = unitFor_(Math.max.apply(null, sums.map(function (s) {
-    return Math.max(s.income, s.expense, Math.abs(s.kept));
+    return Math.max(s.income, s.expense);
   })));
   const trend = months.map(function (m, i) {
     const s = sums[i];
     const t = tabunganAt(m.to);
-    return [monthLabel_(m.from), scaled_(s.income, unit), scaled_(s.expense, unit), scaled_(s.kept, unit),
-      s.income > 0 ? s.kept / s.income : '', t === null ? '' : scaled_(t, unit)];
+    return [monthLabel_(m.from), scaled_(s.income, unit), scaled_(s.expense, unit), t === null ? '' : scaled_(t, unit)];
   });
 
   // KPI cards compare month-to-date with the same days of last month.
@@ -117,34 +114,26 @@ function dashboardData_(all, ctx, today, weekStart, budgets) {
   const prevTo = lastMonth.from.slice(0, 8) +
     pad2_(Math.min(Number(today.slice(8, 10)), Number(lastMonth.to.slice(8, 10))));
   const prev = sumRows_(between_(all, { from: lastMonth.from, to: prevTo }));
-  const rate = function (s) { return s.income > 0 ? s.kept / s.income : null; };
   const nowBal = tabunganAt(today);
   const startBal = tabunganAt(addDays_(month.from, -1));
 
-  const rateNow = rate(cur);
-  const ratePrev = rate(prev);
   // A card sparkline needs two points: one month draws as a solid block, no values as #N/A.
   const spark = function (col, color) {
     const points = trend.filter(function (row) { return row[col - 1] !== ''; }).length;
     return points >= 2 ? [col, color] : null;
   };
+  // Tabungan leads: income minus spending inside a calendar month goes negative when the salary landed last month.
+  // col/span place the cards on the grid: the wide one sits over the left block, the two small ones over the right.
   const kpis = [
-    { label: 'PENGELUARAN', value: compactRp_(cur.expense), bg: CARD_BG.expense, spark: spark(3, COLOR_EXPENSE),
-      delta: pctDelta_(cur.expense, prev.expense, false) },
-    { label: 'PEMASUKAN', value: compactRp_(cur.income), bg: CARD_BG.income, spark: spark(2, COLOR_INCOME),
-      delta: pctDelta_(cur.income, prev.income, true) },
-    { label: 'SISA BULAN INI', value: compactRp_(cur.kept), bg: CARD_BG.sisa, spark: spark(4, COLOR_SISA),
-      delta: pctDelta_(cur.kept, prev.kept, true) },
-    { label: 'SAVINGS RATE', value: rateNow === null ? '–' : Math.round(rateNow * 100) + '%', bg: CARD_BG.rate,
-      spark: spark(5, COLOR_NEUTRAL),
-      delta: rateNow === null || ratePrev === null
-        ? { arrow: '', text: 'belum ada pembanding', good: null }
-        : trend_(Math.round((rateNow - ratePrev) * 100), Math.abs(Math.round((rateNow - ratePrev) * 100)) + ' poin vs bulan lalu', true) },
-    { label: 'TABUNGAN SEKARANG', value: nowBal === null ? '–' : compactRp_(nowBal), bg: CARD_BG.tabungan,
-      spark: spark(6, COLOR_NEUTRAL),
+    { label: 'TABUNGAN SEKARANG', value: nowBal === null ? '–' : compactRp_(nowBal), bg: CARD_BG.tabungan, col: 2, span: 8,
+      spark: spark(4, COLOR_NEUTRAL),
       delta: nowBal === null
         ? { arrow: '', text: 'belum ada akun bank atau cash', good: null }
         : trend_(nowBal - startBal, compactRp_(Math.abs(nowBal - startBal)) + ' sejak awal bulan', true) },
+    { label: 'PENGELUARAN', value: compactRp_(cur.expense), bg: CARD_BG.expense, col: 11, span: 2, spark: spark(3, COLOR_EXPENSE),
+      delta: pctDelta_(cur.expense, prev.expense, false) },
+    { label: 'PEMASUKAN', value: compactRp_(cur.income), bg: CARD_BG.income, col: 14, span: 2, spark: spark(2, COLOR_INCOME),
+      delta: pctDelta_(cur.income, prev.income, true) },
   ];
 
   // Categories: top 8, the rest folded into "Lain-lain".
@@ -189,10 +178,9 @@ function writeData_(ds, d) {
     if (rows.length) ds.getRange(2, col, rows.length, header.length).setValues(rows);
   };
   put(1, ['Bulan', 'Pemasukan (' + d.trend.unit.label + ')', 'Pengeluaran (' + d.trend.unit.label + ')',
-    'Sisa (' + d.trend.unit.label + ')', 'Savings rate', 'Tabungan (' + d.trend.unit.label + ')'], d.trend.rows);
+    'Tabungan (' + d.trend.unit.label + ')'], d.trend.rows);
   put(8, ['Kategori', 'Pengeluaran (' + d.cats.unit.label + ')'], d.cats.rows);
   put(11, ['Minggu', 'Pengeluaran (' + d.weekly.unit.label + ')'], d.weekly.rows);
-  ds.getRange('E:E').setNumberFormat('0%');
   ds.setTabColor('#c3c2b7');
 }
 
@@ -252,10 +240,10 @@ function renderDashboard_(sh, ds, d, updated) {
   sh.getRange(2, 2).setValue(d.title + ' · diperbarui ' + updated).setFontSize(10).setFontColor(INK2);
 
   const trendRows = d.trend.rows.length;
-  d.kpis.forEach(function (k, i) {
-    const c = CARD_COLS[i];
-    sh.getRange(4, c, 4, 2).setBackground(k.bg).setHorizontalAlignment('left');
-    for (let r = 4; r <= 7; r++) sh.getRange(r, c, 1, 2).merge();
+  d.kpis.forEach(function (k) {
+    const c = k.col;
+    sh.getRange(4, c, 4, k.span).setBackground(k.bg).setHorizontalAlignment('left');
+    for (let r = 4; r <= 7; r++) sh.getRange(r, c, 1, k.span).merge();
     sh.getRange(4, c).setValue(k.label).setFontSize(9).setFontWeight('bold').setFontColor(INK2);
     sh.getRange(5, c).setValue(k.value).setFontSize(22).setFontWeight('bold');
     setDelta_(sh.getRange(6, c), k.delta);
@@ -267,8 +255,8 @@ function renderDashboard_(sh, ds, d, updated) {
   const rowA = 9;
   sectionTitle_(sh, rowA, LEFT_COL, 8, 'Tren bulanan');
   sectionTitle_(sh, rowA, RIGHT_COL, 5, 'Pengeluaran per kategori · bulan ini');
-  addChart_(sh, Charts.ChartType.COLUMN, ds.getRange(1, 1, trendRows + 1, 4), rowA + 1, LEFT_COL, LEFT_W,
-    [COLOR_INCOME, COLOR_EXPENSE, COLOR_SISA], 'vAxis', d.trend.unit, true);
+  addChart_(sh, Charts.ChartType.COLUMN, ds.getRange(1, 1, trendRows + 1, 3), rowA + 1, LEFT_COL, LEFT_W,
+    [COLOR_INCOME, COLOR_EXPENSE], 'vAxis', d.trend.unit, true);
   if (d.cats.rows.length) {
     addChart_(sh, Charts.ChartType.BAR, ds.getRange(1, 8, d.cats.rows.length + 1, 2), rowA + 1, RIGHT_COL, RIGHT_W,
       [COLOR_EXPENSE], 'hAxis', d.cats.unit, false);

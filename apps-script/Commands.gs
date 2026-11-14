@@ -68,6 +68,36 @@ function parseAmount_(s) {
   return parseInt(m[1].replace(/[.,]/g, ''), 10);
 }
 
+// Every amount written in a message, as integers: "35rb", "1,5jt", "2.500.000", "Rp 35.000", "35 ribu", "1.5k".
+// Amounts inside words (an id like a1b2c3d4) do not count. Amounts spelled out in words are not found.
+function findAmounts_(text) {
+  const found = [];
+  const re = /(?<![a-z0-9])(?:rp\.?\s*)?(\d+(?:[.,]\d+)*)(?:\s*(rb|ribu|k|jt|juta))?(?![a-z0-9])/gi;
+  let m;
+  while ((m = re.exec(String(text))) !== null) {
+    const unit = m[2] ? m[2].toLowerCase() : '';
+    const value = parseAmount_(m[1] + (unit === 'ribu' ? 'rb' : unit === 'juta' ? 'jt' : unit));
+    if (value !== null) found.push(value);
+  }
+  return found;
+}
+
+// Gemini returns amounts as integers, so a wrong one would look right in the preview. Every amount it claims
+// must be written in the message, or nothing is prepared. Returns '' when fine, else the reply to send.
+function amountProblem_(text, parsed) {
+  const claims = [];
+  (parsed.transactions || []).forEach(function (t) { claims.push(t.amount); });
+  [[parsed.correction, 'amount'], [parsed.account_setup, 'opening'], [parsed.budget_setup, 'limit']].forEach(function (p) {
+    if (p[0] && p[0][p[1]] !== null && p[0][p[1]] !== undefined) claims.push(p[0][p[1]]);
+  });
+  const written = findAmounts_(text);
+  const bad = claims.filter(function (c) { return written.indexOf(c) < 0; });
+  return bad.length
+    ? '🤖 Bip... jumlah yang saya baca (' + rupiah_(Number(bad[0]) || 0) + ') tidak ada di tulisanmu, jadi tidak dicatat. ' +
+      'Coba tulis ulang jumlahnya, mis. "makan 35rb".'
+    : '';
+}
+
 // Splits "<name words> <amount>" into { name, amount }; amount is null when the last word is not one.
 function splitNameAmount_(args) {
   if (args.length >= 2) {

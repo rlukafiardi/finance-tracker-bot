@@ -397,7 +397,10 @@ function commitLog_(a) {
     ];
   });
   const sh = sheet_('transactions');
-  sh.getRange(sh.getLastRow() + 1, 1, rows.length, SHEET_HEADERS.length).setValues(rows);
+  const first = sh.getLastRow() + 1;
+  // merchant, note and raw_message (columns 7-9) are typed text: a plain-text format keeps "=1+1" from becoming a formula
+  sh.getRange(first, 7, rows.length, 3).setNumberFormat('@');
+  sh.getRange(first, 1, rows.length, SHEET_HEADERS.length).setValues(rows);
   return '✅ ' + line_('saved') + '\n\n' + a.txs.map(describe_).join('\n') + budgetWarnings_(a.txs);
 }
 
@@ -444,6 +447,7 @@ function commitCorrect_(a) {
   createAccounts_(a.newAccounts);
   if (a.newCategory) commitCategory_(a.newCategory);
   const t = a.tx;
+  sh.getRange(r, 7, 1, 2).setNumberFormat('@'); // merchant and note stay text, never formulas
   sh.getRange(r, 2, 1, 7).setValues([[
     Utilities.parseDate(t.date, TZ, 'yyyy-MM-dd'), t.amount, t.type, t.category, t.account, t.merchant, t.note,
   ]]);
