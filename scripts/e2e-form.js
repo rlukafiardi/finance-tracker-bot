@@ -189,6 +189,9 @@ const writeView = Object.assign(viewOf(rows), { form, telegram: 'https://t.me/c/
     assert.ok(!(await shown('#n_sheet')) && await shown('#n_add'));
     await page.click('nav button[data-tab=ringkasan]');
     assert.ok((await text('main section[data-tab=ringkasan]')).includes('Rp 21,9 jt'), 'cards come from the response, no reload');
+    await page.click('nav button[data-tab=ringkasan]');
+    await page.tap('.weeks .wk:nth-child(2)');
+    assert.ok((await text('.panel .cap')).startsWith('W2 · 2–8 Nov'), 'tapping a bar still works after the page content was swapped: ' + await text('.panel .cap'));
     await page.click('nav button[data-tab=transaksi]');
     assert.ok((await text('#count')).startsWith('15 dari 15'), await text('#count'));
     assert.ok((await text('#list')).includes('Kedai Zeta'), 'new row is listed without a reload');

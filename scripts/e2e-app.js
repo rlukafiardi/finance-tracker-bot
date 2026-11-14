@@ -64,6 +64,41 @@ const app = loadApp();
       await shot('phone-' + tab);
     }
 
+    // tap shows the numbers (no hover on a phone): week bars, hero bars, donut slice
+    await page.click('nav button[data-tab=ringkasan]');
+    assert.strictEqual(await page.$$eval('.weeks .wk', (b) => b.length), 6, 'November 2026 has six whole Monday-to-Sunday weeks');
+    assert.strictEqual(await page.$$eval('.weeks .wk.future', (b) => b.length), 3, 'W4-W6 have not started on the 14th');
+    assert.deepStrictEqual(await page.$$eval('.weeks .wl', (l) => l.map((x) => x.textContent)), ['W126 Okt–1 Nov', 'W22–8', 'W39–15', 'W416–22', 'W523–29', 'W630 Nov–6 Des']);
+    assert.ok(await page.$$eval('.weeks .wk', (b) => b.every((x) => x.querySelector('.wl').scrollWidth <= x.clientWidth + 1)), 'week labels fit their column at 390 px');
+    const capOf = (sel) => page.$eval(sel, (n) => n.textContent);
+    assert.ok((await capOf('.panel .cap')).startsWith('November 2026 · Pengeluaran'), 'caption starts with the month total');
+    await page.tap('.weeks .wk:nth-child(1)');
+    assert.strictEqual(await capOf('.panel .cap'), await page.$eval('.weeks .wk:nth-child(1)', (b) => b.dataset.tip.split('|').join(' · ')));
+    assert.ok((await capOf('.panel .cap')).startsWith('W1 · 26 Okt–1 Nov · Pengeluaran Rp 10 rb'), await capOf('.panel .cap'));
+    assert.deepStrictEqual(await page.$$eval('.weeks .wk', (b) => b.map((x) => x.getAttribute('aria-pressed'))), ['true', 'false', 'false', 'false', 'false', 'false']);
+    await page.tap('.weeks .wk:nth-child(4)');
+    assert.strictEqual(await capOf('.panel .cap'), 'W4 · 16–22 Nov · belum berjalan');
+    assert.deepStrictEqual(await page.$$eval('.weeks .wk', (b) => b.map((x) => x.getAttribute('aria-pressed'))), ['false', 'false', 'false', 'true', 'false', 'false'], 'one bar selected at a time');
+    assert.strictEqual(await capOf('.spcap'), 'Ketuk batang untuk melihat Tabungan tiap bulan');
+    await page.tap('.sprow .sp:nth-child(3)');
+    assert.strictEqual(await capOf('.spcap'), 'Agu 2026 · Tabungan Rp 24 jt');
+    assert.ok(await page.$eval('.spark', (n) => n.classList.contains('picked')) && await page.$eval('.sp:nth-child(3)', (n) => n.classList.contains('on')));
+    await shot('phone-tap');
+    await page.click('nav button[data-tab=kategori]');
+    const donut = await (await page.$('.donut svg')).boundingBox();
+    const tapSlice = async () => { // a real touch on the first slice's stroke (60 degrees clockwise from the top), not a dispatched event
+      const r = donut.width * 40 / 120, a = Math.PI / 3;
+      await page.touchscreen.tap(donut.x + donut.width / 2 + r * Math.sin(a), donut.y + donut.height / 2 - r * Math.cos(a));
+    };
+    assert.strictEqual(await capOf('.dc b'), 'Rp 4,2 jt');
+    await tapSlice();
+    assert.strictEqual(await capOf('.dc b'), 'Rp 1,7 jt');
+    assert.strictEqual(await capOf('.dc small'), 'Makan · 39%');
+    await shot('phone-donut-tap');
+    await tapSlice();
+    assert.deepStrictEqual([await capOf('.dc b'), await capOf('.dc small')], ['Rp 4,2 jt', 'pengeluaran'], 'tapping the slice again goes back to the total');
+    await page.click('nav button[data-tab=ringkasan]');
+
     // transaction list and filters
     await page.click('nav button[data-tab=transaksi]');
     const listed = () => page.$$eval('#list .tx', (r) => r.length);

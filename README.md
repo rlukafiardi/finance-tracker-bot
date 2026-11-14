@@ -176,7 +176,10 @@ A page served by the same web app (`doGet`, `apps-script/App.gs`), meant for a p
   end; budget limits are today's (the budgets tab keeps no history).
 - **Ringkasan**: a hero card with Tabungan (the money held: every account except investasi and e-wallets), its change
   since the start of the month and its value at each of the last 6 month-ends, then spending and income cards and
-  spending per week. There is no "sisa" here on purpose: income minus spending inside a calendar month goes negative
+  spending per week of the viewed month (W1, W2, ...: whole Monday-to-Sunday weeks like the Telegram recaps, from the week of the 1st
+  to the week of the last day, so the first and last week can hold days of the neighbouring month and the weeks do not add up to the
+  month total; a week that has not started yet is empty and marked). Tap a bar, a hero bar or a donut
+  slice to see its numbers (a phone has no hover). There is no "sisa" here on purpose: income minus spending inside a calendar month goes negative
   whenever the salary lands in the previous month. **Kategori**: a donut and a ranked list with icons (one blue ramp by rank, grey for the rest),
   and budgets. **Transaksi**: that month's rows grouped by day, with search (merchant, note) and filters (type,
   category, account, amount range). **Akun**: total and balances with share bars. Always light, whatever the phone's

@@ -179,4 +179,46 @@ assert.ok(first.includes('<section class="hero"><div class="label">Tabungan seka
 const noMoney = app.appPage_(Object.assign({}, nov.d, { kpis: nov.d.kpis.filter((k) => k.label !== 'TABUNGAN SEKARANG') }), '14/11 10:30', nov.view, nav);
 assert.ok(!noMoney.includes('class="hero"'), 'no hero when there is nothing to show');
 
+// weeks of a month: whole Monday-to-Sunday weeks like the Telegram recaps, from the week of the 1st to the week of the last day
+const span = (month, today_) => app.appWeeks_([], month, today_).map((w) => [w.from, w.to]);
+deq(span('2026-11', '2026-11-14'), [['2026-10-26', '2026-11-01'], ['2026-11-02', '2026-11-08'], ['2026-11-09', '2026-11-15'],
+  ['2026-11-16', '2026-11-22'], ['2026-11-23', '2026-11-29'], ['2026-11-30', '2026-12-06']], 'Nov 2026 starts on a Sunday: W1 begins in October, W6 ends in December');
+deq(span('2026-10', '2026-11-14'), [['2026-09-28', '2026-10-04'], ['2026-10-05', '2026-10-11'], ['2026-10-12', '2026-10-18'],
+  ['2026-10-19', '2026-10-25'], ['2026-10-26', '2026-11-01']], 'Oct 2026 starts on a Thursday');
+deq(span('2027-02', '2027-03-01'), [['2027-02-01', '2027-02-07'], ['2027-02-08', '2027-02-14'], ['2027-02-15', '2027-02-21'], ['2027-02-22', '2027-02-28']],
+  'a month that starts on a Monday and has 28 days has exactly 4 weeks');
+deq(span('2024-02', '2026-11-14').map((w) => w[0]), ['2024-01-29', '2024-02-05', '2024-02-12', '2024-02-19', '2024-02-26'], 'leap February 2024, the last week starts on the 26th');
+deq(span('2026-12', '2026-11-14').map((w) => w[1]).slice(-1), ['2027-01-03'], 'the last week of December ends in January');
+deq(app.appWeeks_([], '2026-11', '2026-11-14').map((w) => w.future), [false, false, false, true, true, true], 'the week that is running is not future, later ones are');
+deq(app.appWeeks_([], '2026-10', '2026-11-14').map((w) => w.future), [false, false, false, false, false], 'a past month has no future weeks');
+deq(app.appWeeks_([], '2026-11', '2026-11-15').map((w) => w.future), [false, false, false, true, true, true], 'Sunday the 15th ends W3');
+deq(app.appWeeks_([], '2026-11', '2026-11-16').map((w) => w.future), [false, false, false, false, true, true], 'Monday the 16th starts W4');
+const edgeRows = [['2026-10-26', 'expense', 64], ['2026-11-01', 'expense', 1], ['2026-11-02', 'expense', 2], ['2026-11-08', 'expense', 4], ['2026-11-09', 'expense', 8],
+  ['2026-11-29', 'expense', 16], ['2026-11-30', 'income', 32], ['2026-12-06', 'expense', 128], ['2026-11-30', 'transfer', 99], ['2026-11-10', 'saving', 99]]
+  .map(([date, type, amount]) => ({ date, type, amount }));
+deq(app.appWeeks_(edgeRows, '2026-11', '2026-11-30').map((w) => [w.expense, w.income]), [[65, 0], [6, 0], [8, 0], [0, 0], [16, 0], [128, 32]],
+  'Oct 26 and Nov 1 are both W1, Sunday the 8th ends W2, Monday the 9th starts W3, Dec 6 ends W6; transfers and saving rows are not counted');
+deq(app.appWeeks_(oct.view.weekRows, '2026-10', today).map((w) => [w.expense, w.income]),
+  [[50000, 9000000], [0, 0], [200000, 0], [0, 10000000], [1119000, 0]], 'October view by whole week: the 28 Sep salary and the 1 Nov purchase belong to the edge weeks');
+deq(app.appWeeks_(nov.view.weekRows, '2026-11', today).map((w) => [w.expense, w.income]),
+  [[1119000, 0], [0, 0], [40000, 0], [0, 0], [0, 0], [0, 0]], 'November view: W1 holds 31 Oct and 1 Nov');
+assert.ok(oct.view.weekRows.every((r) => Object.keys(r).sort().join() === 'amount,date,type'), 'week rows carry only date, type and amount');
+
+// the chart on the page: W1-W5 of the viewed month, numbers also in data-tip for a tap
+const octPage = app.appPage_(oct.d, '14/11 10:30', oct.view, nav);
+const novPage = app.appPage_(nov.d, '14/11 10:30', nov.view, nav);
+assert.ok(octPage.includes('Pengeluaran per minggu') && !octPage.includes('Pengeluaran per bulan'));
+assert.strictEqual((octPage.match(/<button type="button" class="wk/g) || []).length, 5, 'five week bars in October');
+assert.ok(octPage.includes('<p class="cap" data-cap>Oktober 2026 · Pengeluaran Rp 370 rb · Pemasukan Rp 10 jt</p>'), 'caption starts with the month total');
+assert.ok(octPage.includes('data-tip="W5 · 26 Okt–1 Nov|Pengeluaran Rp 1,1 jt|Pemasukan Rp 0"'), 'tip of the week that crosses into November');
+assert.ok(octPage.includes('data-tip="W4 · 19–25 Okt|Pengeluaran Rp 0|Pemasukan Rp 10 jt"'), 'tip of W4 shows the salary');
+assert.strictEqual((novPage.match(/<button type="button" class="wk/g) || []).length, 6, 'six week bars in November 2026');
+assert.strictEqual((novPage.match(/class="wk future"/g) || []).length, 3, 'W4-W6 of the running month are marked');
+assert.ok(novPage.includes('data-tip="W4 · 16–22 Nov|belum berjalan"'), 'a future week says so');
+assert.ok(novPage.includes('data-tip="W1 · 26 Okt–1 Nov|Pengeluaran Rp 1,1 jt|Pemasukan Rp 0"'), 'W1 of November begins in October');
+// donut slices and hero bars carry their numbers too
+assert.ok(octPage.includes('data-tip="Transport|Rp 200 rb|54%"') && octPage.includes('data-tip="Makan|Rp 170 rb|46%"'), 'donut tips');
+assert.ok(octPage.includes('data-tip="Sep 2026|Tabungan Rp 10,5 jt"') && octPage.includes('data-tip="Okt 2026|Tabungan Rp 19,8 jt"'), 'hero bar tips');
+assert.strictEqual(app.appTip_(['a|b', '<c>']), 'a/b|&lt;c&gt;', 'tip text cannot break the separator or the attribute');
+
 console.log('App tests OK');

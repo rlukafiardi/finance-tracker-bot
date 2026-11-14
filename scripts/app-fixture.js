@@ -58,8 +58,6 @@ const sample = {
     rows: [['Makan', 1650], ['Transport', 820], ['Belanja', 640], ['Tagihan', 480], ['Hiburan', 310], ['Lain-lain', 300]] },
   trend: { unit: { div: 1e6, label: 'juta' }, rows: [['Jun 2026', 8, 5, 18], ['Jul 2026', 8, 6.5, 19.5], ['Agu 2026', 9, 4, 24],
     ['Sep 2026', 9, 7, 26], ['Okt 2026', 10, 6, 30], ['Nov 2026', 9, 4.2, 21.5]] },
-  weekly: { unit: { div: 1e3, label: 'ribu' },
-    rows: [['6 Okt', 900], ['13 Okt', 1100], ['20 Okt', 760], ['27 Okt', 1300], ['3 Nov', 980], ['10 Nov', 1450]] },
   budgets: [{ category: 'Makan', spent: 1650000, limit: 2000000, pct: 83 },
     { category: 'Hiburan', spent: 310000, limit: 300000, pct: 103 },
     { category: 'Transport', spent: 820000, limit: 1500000, pct: 55 }],
@@ -81,6 +79,7 @@ function sampleRows(n) {
 }
 
 const nav = { base: 'https://example.test/exec', token: 'tok en&1' };
-const viewOf = (rows) => ({ month: '2026-11', months: ['2026-11', '2026-10', '2026-09'], current: true, rows, today: '2026-11-14' });
+const viewOf = (rows) => ({ month: '2026-11', months: ['2026-11', '2026-10', '2026-09'], current: true, rows, today: '2026-11-14',
+  weekRows: rows.filter((r) => r.type === 'expense' || r.type === 'income') });
 
 module.exports = { loadApp, sample, sampleRows, nav, viewOf, ledger, accounts, budgets, today, tx };

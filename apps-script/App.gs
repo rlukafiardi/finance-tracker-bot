@@ -52,10 +52,13 @@ function appMonthParam_(param, today) {
 }
 
 // Last day of a past month; the current month ends today.
-function appMonthEnd_(month, today) {
-  if (month === today.slice(0, 7)) return today;
+function appMonthLast_(month) {
   const last = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
   return month + '-' + (last < 10 ? '0' : '') + last;
+}
+
+function appMonthEnd_(month, today) {
+  return month === today.slice(0, 7) ? today : appMonthLast_(month);
 }
 
 function appWeekStart_(date) {
@@ -104,7 +107,10 @@ function appModel_(all, accounts, budgets, monthParam, today) {
   const rows = between_(all, { from: month + '-01', to: end }).map(appRow_).sort(function (a, b) {
     return b.date.localeCompare(a.date) || Number(b.id) - Number(a.id);
   });
-  return { d: d, view: { month: month, months: months, current: month === today.slice(0, 7), rows: rows, today: today } };
+  const weekRows = between_(all, { from: appWeekStart_(month + '-01'), to: new Date(Date.parse(appWeekStart_(appMonthLast_(month)) + 'T00:00:00Z') + 6 * 86400000).toISOString().slice(0, 10) })
+    .filter(function (r) { return r.type === 'expense' || r.type === 'income'; })
+    .map(function (r) { return { date: r.date, type: r.type, amount: r.amount }; });
+  return { d: d, view: { month: month, months: months, current: month === today.slice(0, 7), rows: rows, weekRows: weekRows, today: today } };
 }
 
 // Filters and totals also run in the browser: they are written without outside references and sent as source text.
@@ -371,19 +377,43 @@ function appSpark_(trend) {
   const vals = pts.map(function (p) { return p[3]; });
   const peak = Math.max.apply(null, vals.map(Math.abs).concat([0.0001]));
   const hasNeg = vals.some(function (v) { return v < 0; });
-  return '<div class="spark" role="img" aria-label="Tabungan di akhir tiap bulan, 6 bulan terakhir">' + pts.map(function (p, i) {
+  return '<div class="spark" data-tips><div class="sprow">' + pts.map(function (p, i) {
     const v = vals[i];
     const h = Math.max(4, Math.round(Math.abs(v) / peak * (hasNeg ? 46 : 92)));
     const at = hasNeg ? (v >= 0 ? 'bottom:50%' : 'top:50%') : 'bottom:0';
-    return '<div class="sp"><div class="spcol"><i class="' + (v < 0 ? 'neg' : '') + '" style="height:' + h + '%;' + at + '"></i></div><span>' +
-      htmlEsc_(String(p[0]).slice(0, 3)) + '</span></div>';
-  }).join('') + '</div>';
+    const tip = [p[0], 'Tabungan ' + compactRp_(v * trend.unit.div)];
+    return '<button type="button" class="sp" data-tip="' + appTip_(tip) + '" title="' + htmlEsc_(tip.join(' · ')) + '" aria-pressed="false">' +
+      '<div class="spcol"><i class="' + (v < 0 ? 'neg' : '') + '" style="height:' + h + '%;' + at + '"></i></div><span>' +
+      htmlEsc_(String(p[0]).slice(0, 3)) + '</span></button>';
+  }).join('') + '</div><div class="spcap" data-cap>Ketuk batang untuk melihat Tabungan tiap bulan</div></div>';
+}
+
+// Weeks of one month, whole Monday-to-Sunday weeks like the Telegram recaps: from the week of the 1st to the week of the last
+// day, so the first and last week can hold days of the neighbouring month and the weeks do not add up to the month total.
+// `rows` are the income and expense rows of those whole weeks. A week that starts after `today` is `future`.
+function appWeeks_(rows, month, today) {
+  const day = function (iso, n) { return new Date(Date.parse(iso + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10); };
+  const last = appMonthLast_(month);
+  const weeks = [];
+  for (let from = appWeekStart_(month + '-01'); from <= last; from = day(from, 7)) {
+    weeks.push({ n: weeks.length + 1, from: from, to: day(from, 6), expense: 0, income: 0, future: from > today });
+  }
+  rows.forEach(function (r) {
+    if (r.type !== 'expense' && r.type !== 'income') return;
+    weeks.forEach(function (w) { if (r.date >= w.from && r.date <= w.to) w[r.type] += r.amount; });
+  });
+  return weeks;
+}
+
+// There is no hover on a phone: charts carry their numbers in data-tip ("title|line|line") and a tap shows them.
+function appTip_(parts) {
+  return htmlEsc_(parts.map(function (p) { return String(p).replace(/\|/g, '/'); }).join('|'));
 }
 
 function appDonut_(cats) {
-  const slices = cats.rows.slice(0, APP_RAMP_N).map(function (c, i) { return { v: c[1], cls: 's' + (i + 1) }; });
+  const slices = cats.rows.slice(0, APP_RAMP_N).map(function (c, i) { return { v: c[1], cls: 's' + (i + 1), name: c[0] }; });
   const rest = cats.rows.slice(APP_RAMP_N).reduce(function (t, c) { return t + c[1]; }, 0);
-  if (rest > 0) slices.push({ v: rest, cls: 'sg' });
+  if (rest > 0) slices.push({ v: rest, cls: 'sg', name: 'Lainnya' });
   const total = slices.reduce(function (t, x) { return t + x.v; }, 0);
   if (total <= 0) return '';
   const circ = 2 * Math.PI * 40;
@@ -391,14 +421,16 @@ function appDonut_(cats) {
   const arcs = slices.map(function (x) {
     const len = x.v / total * circ;
     const draw = Math.max(len - 1.5, 0.5);
+    const tip = [x.name, compactRp_(x.v * cats.unit.div), Math.round(x.v / total * 100) + '%'];
     const arc = '<circle class="sl ' + x.cls + '" cx="60" cy="60" r="40" stroke-dasharray="' + draw.toFixed(2) + ' ' +
-      (circ - draw).toFixed(2) + '" stroke-dashoffset="' + (-from).toFixed(2) + '"/>';
+      (circ - draw).toFixed(2) + '" stroke-dashoffset="' + (-from).toFixed(2) + '" data-tip="' + appTip_(tip) + '" tabindex="0" role="button" ' +
+      'aria-label="' + htmlEsc_(tip.join(', ')) + '"><title>' + htmlEsc_(tip.join(' · ')) + '</title></circle>';
     from += len;
     return arc;
   }).join('');
-  return '<div class="donut"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="dt" cx="60" cy="60" r="40"/>' +
-    '<g transform="rotate(-90 60 60)">' + arcs + '</g></svg><div class="dc"><b>' + htmlEsc_(compactRp_(total * cats.unit.div)) +
-    '</b><small>pengeluaran</small></div></div>';
+  const all = compactRp_(total * cats.unit.div);
+  return '<div class="donut" data-tips data-b="' + htmlEsc_(all) + '" data-s="pengeluaran"><svg viewBox="0 0 120 120"><circle class="dt" cx="60" cy="60" r="40"/>' +
+    '<g transform="rotate(-90 60 60)">' + arcs + '</g></svg><div class="dc"><b>' + htmlEsc_(all) + '</b><small>pengeluaran</small></div></div>';
 }
 
 // The four tab sections: also returned by appSave so the page can swap them without a reload.
@@ -415,16 +447,23 @@ function appSections_(d, view) {
   };
   const cards = '<div class="cards">' + stat(byLabel['PENGELUARAN'], '💸', 't-exp') + stat(byLabel['PEMASUKAN'], '💰', 't-inc') + '</div>';
 
-  const weeks = d.weekly.rows.slice(-8);
-  const wMax = Math.max.apply(null, weeks.map(function (w) { return w[1]; }).concat([0]));
-  const weekHtml = weeks.length ? '<section class="panel"><h2>Pengeluaran per minggu</h2><div class="weeks">' +
-    weeks.map(function (w, i) {
-      const h = wMax > 0 ? Math.max(3, Math.round(w[1] / wMax * 100)) : 3;
-      const last = i === weeks.length - 1;
-      return '<div class="wk' + (last ? ' now' : '') + '"><div class="wv">' +
-        (last ? htmlEsc_(compactRp_(w[1] * d.weekly.unit.div)) : '') + '</div><div class="col"><span style="height:' + h +
-        '%"></span></div><div class="wl">' + htmlEsc_(w[0]) + '</div></div>';
-    }).join('') + '</div></section>' : '';
+  const weeks = appWeeks_(view.weekRows, view.month, view.today);
+  const peak = Math.max.apply(null, weeks.map(function (w) { return w.expense; }).concat([0]));
+  const monthSum = appTotals_(view.rows);
+  const dm = function (iso) { return Number(iso.slice(8, 10)) + ' ' + MONTHS_ID[Number(iso.slice(5, 7)) - 1].slice(0, 3); };
+  const span = function (w) { return w.from.slice(0, 7) === w.to.slice(0, 7) ? Number(w.from.slice(8, 10)) + '–' + Number(w.to.slice(8, 10)) : dm(w.from) + '–' + dm(w.to); };
+  const spanHtml = function (w) { return span(w).split('–').map(htmlEsc_).join(w.from.slice(0, 7) === w.to.slice(0, 7) ? '–' : '–<br>'); };
+  const tipOf = function (w) {
+    return ['W' + w.n + ' · ' + span(w) + (w.from.slice(0, 7) === w.to.slice(0, 7) ? ' ' + dm(w.to).split(' ')[1] : ''), w.future ? 'belum berjalan' : 'Pengeluaran ' + compactRp_(w.expense),
+      w.future ? '' : 'Pemasukan ' + compactRp_(w.income)].filter(Boolean);
+  };
+  const weekHtml = '<section class="panel"><h2>Pengeluaran per minggu</h2><p class="cap" data-cap>' + htmlEsc_(appMonthName_(view.month) + ' · Pengeluaran ' +
+    compactRp_(monthSum.expense) + ' · Pemasukan ' + compactRp_(monthSum.income)) + '</p><div class="weeks" data-tips>' + weeks.map(function (w) {
+      const tip = tipOf(w);
+      const h = w.future ? 3 : peak > 0 ? Math.max(3, Math.round(w.expense / peak * 100)) : 3;
+      return '<button type="button" class="wk' + (w.future ? ' future' : '') + '" data-tip="' + appTip_(tip) + '" title="' + htmlEsc_(tip.join(' · ')) +
+        '" aria-pressed="false"><div class="col"><span style="height:' + h + '%"></span></div><div class="wl"><b>W' + w.n + '</b>' + spanHtml(w) + '</div></button>';
+    }).join('') + '</div><p class="tiphint">Ketuk batang untuk melihat angkanya. Satu minggu penuh Senin–Minggu seperti rekap Telegram, jadi minggu pertama dan terakhir bisa memuat hari dari bulan lain.</p></section>';
 
   const catTotal = d.cats.rows.reduce(function (t, c) { return t + c[1]; }, 0);
   const top = Math.max.apply(null, d.cats.rows.map(function (c) { return c[1]; }).concat([0]));
@@ -716,10 +755,11 @@ function appPage_(d, stamp, view, nav) {
     'box-shadow:0 10px 24px rgba(20,57,92,.25)}.hero:before,.hero:after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.07)}',
     '.hero:before{width:180px;height:180px;right:-50px;top:-70px}.hero:after{width:120px;height:120px;left:-40px;bottom:-60px}.hero>*{position:relative}',
     '.hero .label{color:rgba(255,255,255,.78)}.hero .big{font-size:34px;font-weight:800;letter-spacing:-.02em;margin:2px 0 8px}',
-    '.spark{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.15)}',
-    '.sp{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}.spcol{position:relative;width:100%;height:46px}',
+    '.spark{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.15)}.sprow{display:flex;gap:8px}',
+    'button.sp{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;border:0;background:none;padding:0;color:inherit;font:inherit;cursor:pointer}.spcol{position:relative;width:100%;height:46px}',
     '.spcol i{position:absolute;left:18%;width:64%;border-radius:4px;background:rgba(255,255,255,.85)}.spcol i.neg{background:rgba(255,190,180,.9)}',
-    '.sp span{font-size:10px;color:rgba(255,255,255,.7)}',
+    '.sp span{font-size:10px;color:rgba(255,255,255,.7)}.spcap{margin-top:8px;font-size:12px;color:rgba(255,255,255,.85);min-height:16px;text-align:center}',
+    '.sp.on .spcol i{background:#fff}.spark.picked .sp:not(.on) i{opacity:.5}',
     '.pill{display:inline-block;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--tile);color:var(--ink2)}',
     '.pill.good{background:rgba(23,121,74,.12);color:var(--good)}.pill.bad{background:rgba(180,35,24,.1);color:var(--bad)}',
     '.hero .pill,.hero .pill.good,.hero .pill.bad{background:rgba(255,255,255,.18);color:#fff}',
@@ -729,14 +769,16 @@ function appPage_(d, stamp, view, nav) {
     '.tile{flex:none;width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--tile)}',
     '.t-exp{background:var(--t-exp)}.t-inc{background:var(--t-inc)}',
     '.panel{margin-bottom:12px}h2{font-size:14px;margin:0 0 12px;letter-spacing:.01em}.label{font-size:12px;color:var(--ink2)}',
-    '.weeks{display:flex;gap:6px;align-items:flex-end;height:150px}.wk{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;min-width:0}',
-    '.wv{font-size:10px;font-weight:700;height:14px;white-space:nowrap}.col{flex:1;width:100%;display:flex;align-items:flex-end}',
-    '.col span{display:block;width:100%;border-radius:7px 7px 3px 3px;background:var(--track);transform-origin:bottom}',
-    '.wk.now .col span{background:var(--bar)}.wl{font-size:10px;color:var(--ink2);margin-top:4px;white-space:nowrap}',
+    '.weeks{display:flex;gap:8px;align-items:flex-end;height:150px}',
+    'button.wk{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;border:0;background:none;padding:0;color:inherit;font:inherit;cursor:pointer}',
+    '.col{flex:1;width:100%;display:flex;align-items:flex-end}.col span{display:block;width:100%;border-radius:7px 7px 3px 3px;transform-origin:bottom}',
+    '.col span{background:var(--bar)}.wk.on .col span{background:var(--accent)}.wk.future .col span{background:var(--track)}',
+    '.wl{font-size:10px;color:var(--ink2);margin-top:4px;white-space:nowrap;text-align:center}.wl b{display:block;font-size:11px;color:var(--ink)}',
+    '.cap{font-size:13px;font-weight:700;margin:0 0 10px;min-height:19px}.tiphint{font-size:11px;color:var(--ink2);margin:8px 0 0}',
     '.donut{position:relative;width:176px;height:176px;margin:4px auto 14px}.donut svg{width:100%;height:100%}',
-    '.donut circle{fill:none;stroke-width:15}.dt{stroke:var(--track)}.sl{stroke-linecap:butt}',
+    '.donut circle{fill:none;stroke-width:15}.dt{stroke:var(--track)}.sl{stroke-linecap:butt;cursor:pointer;outline:none}.donut circle.sl.on,.donut circle.sl:focus-visible{stroke-width:19}',
     '.s1{stroke:var(--c1)}.s2{stroke:var(--c2)}.s3{stroke:var(--c3)}.s4{stroke:var(--c4)}.s5{stroke:var(--c5)}.sg{stroke:var(--cg)}',
-    '.dc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}.dc b{font-size:20px;font-weight:800}',
+    '.dc{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center}.dc b{font-size:20px;font-weight:800}',
     '.dc small{font-size:11px;color:var(--ink2)}',
     '.crow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;margin-bottom:14px}.crow:last-child{margin-bottom:0}',
     '.name{font-weight:600;display:flex;align-items:center;gap:6px}.name small{color:var(--ink2);font-weight:400;font-size:12px;white-space:nowrap}.camt.sm{font-size:12px}',
@@ -890,8 +932,30 @@ function render() {
     list.appendChild(el('p', 'muted empty', 'Menampilkan ' + MAX + ' teratas. Persempit filter untuk melihat sisanya.'));
   }
 }
+function showTip(t) {
+  var box = t.closest('[data-tips]');
+  if (!box) return;
+  var parts = t.dataset.tip.split('|');
+  var donut = box.classList.contains('donut');
+  var again = donut && t.classList.contains('on');
+  box.querySelectorAll('[data-tip]').forEach(function (x) {
+    var on = x === t && !again;
+    x.classList.toggle('on', on);
+    if (x.tagName === 'BUTTON') x.setAttribute('aria-pressed', String(on));
+  });
+  box.classList.add('picked');
+  if (donut) {
+    box.querySelector('.dc b').textContent = again ? box.dataset.b : parts[1];
+    box.querySelector('.dc small').textContent = again ? box.dataset.s : parts[0] + ' \u00b7 ' + parts[2];
+  } else {
+    var cap = box.parentNode.querySelector('[data-cap]') || box.querySelector('[data-cap]');
+    cap.textContent = parts.join(' \u00b7 ');
+  }
+}
 var main = document.querySelector('main');
 main.addEventListener('click', function (e) {
+  var tip = e.target.closest('[data-tip]');
+  if (tip) { showTip(tip); return; }
   if (e.target.closest('#toggle')) {
     var open = $('more').hidden;
     $('more').hidden = !open;
