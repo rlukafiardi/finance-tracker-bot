@@ -191,3 +191,28 @@ function backupSheet_() {
   DriveApp.getFileById(backup.getId()).moveTo(folder);
   return name;
 }
+
+// "/tren" or "tren kategori": the same 6-month category trend as the app's Kategori tab, as text. With a category name,
+// only that one (any expense category, not just the top 5).
+const TREND_BLOCKS = '▁▂▃▄▅▆▇█';
+
+function trendReply_(category) {
+  const today = todayStr_();
+  const t = appCatTrend_(readTransactions_(), today.slice(0, 7), today, category);
+  if (!t) return 'Belum ada data bulan sebelumnya untuk membandingkan 📈';
+  if (!t.rows.length) return category ? 'Belum ada pengeluaran di kategori ' + category + ' dalam 6 bulan ini.' : 'Belum ada pengeluaran dalam 6 bulan ini.';
+  const mon = function (k) { return MONTHS_ID[Number(k.slice(5, 7)) - 1].slice(0, 3); };
+  const blocks = function (vals) {
+    const peak = Math.max.apply(null, vals.concat([1]));
+    return vals.map(function (v) { return v > 0 ? TREND_BLOCKS.charAt(Math.max(1, Math.round(v / peak * 7))) : TREND_BLOCKS.charAt(0); }).join('');
+  };
+  const lines = ['📈 Tren pengeluaran per kategori, ' + mon(t.keys[0]) + '–' + mon(t.keys[t.keys.length - 1]) + ' ' + t.keys[t.keys.length - 1].slice(0, 4)];
+  t.rows.forEach(function (c) {
+    const d = appTrendDelta_(c);
+    lines.push('', emojiFor_({ category: c.category, type: 'expense' }) + ' ' + c.category + (d ? ' ' + (d.arrow ? d.arrow + ' ' : '') + d.text : ''));
+    lines.push(blocks(c.vals));
+    lines.push(c.vals.map(function (v, i) { return mon(t.keys[i]) + ' ' + (v > 0 ? compactRp_(v).replace('Rp ', '') : '-'); }).join(' · '));
+  });
+  lines.push('', '% = bulan ini dibanding bulan lalu' + (t.partial ? ' sampai tgl ' + t.upto : '') + '. Tiap kategori punya skala sendiri.');
+  return lines.join('\n');
+}

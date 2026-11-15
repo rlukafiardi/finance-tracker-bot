@@ -48,6 +48,8 @@ const EXAMPLES = [
   { message: 'total pengeluaran selama ini', expect: { intent: 'query', transactions: [], query: { metric: 'spending', period: 'all' } } },
   { message: 'berapa total gofood bulan ini?', expect: { intent: 'query', transactions: [], query: { metric: 'spending', period: 'month', merchant: 'Gofood' } } },
   { message: 'pengeluaran pake gopay minggu ini?', expect: { intent: 'query', transactions: [], query: { metric: 'spending', period: 'week', account: 'GoPay' } } },
+  { message: 'tren kategori', expect: { intent: 'query', transactions: [], query: { metric: 'category_trend' } } },
+  { message: 'tren makan 6 bulan terakhir', expect: { intent: 'query', transactions: [], query: { metric: 'category_trend', category: 'Makan' } } },
   { message: 'ubah a1b2c3d4 jadi 40rb', expect: { intent: 'correct', transactions: [], correction: { id: 'a1b2c3d4', amount: 40000 } } },
   { message: 'transaksi a1b2c3d4 harusnya transport', expect: { intent: 'correct', transactions: [], correction: { id: 'a1b2c3d4', category: 'Transport' } } },
   { message: 'transfer bca ke bni 1jt admin 2,5rb', expect: { intent: 'log', transactions: [{ amount: 1000000, type: 'transfer', account: 'BCA', to_account: 'BNI' }, { amount: 2500, type: 'expense', account: 'BCA' }] } },

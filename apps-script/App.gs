@@ -115,11 +115,11 @@ function appModel_(all, accounts, budgets, monthParam, today) {
 }
 
 // Spending per category over the 6 months ending at `month`, for the top APP_RAMP_N categories of those months (expense
-// only, transfers and savings excluded like everywhere else). The delta compares the chosen month with the month before over
+// only, transfers and savings excluded like everywhere else; `only` = one category by name instead of the top). The delta compares the chosen month with the month before over
 // the same days, so a month in progress is not set against a whole one. Null until there are 2 months of data.
 const APP_TREND_MONTHS = 6;
 
-function appCatTrend_(all, month, today) {
+function appCatTrend_(all, month, today, only) {
   const keys = [];
   let y = Number(month.slice(0, 4));
   let m = Number(month.slice(5, 7));
@@ -145,10 +145,13 @@ function appCatTrend_(all, month, today) {
   });
   const first = all.reduce(function (min, r) { return r.date < min ? r.date : min; }, today).slice(0, 7);
   if (first >= month) return null;
-  const rows = Object.keys(by).map(function (k) { return by[k]; }).map(function (c) {
+  const ranked = Object.keys(by).map(function (k) { return by[k]; }).map(function (c) {
     c.total = c.vals.reduce(function (t, v) { return t + v; }, 0);
     return c;
-  }).sort(function (a, b) { return b.total - a.total; }).slice(0, APP_RAMP_N);
+  }).sort(function (a, b) { return b.total - a.total; });
+  const rows = only
+    ? ranked.filter(function (c) { return c.category.toLowerCase() === String(only).toLowerCase(); })
+    : ranked.slice(0, APP_RAMP_N);
   return { keys: keys, rows: rows, partial: month === today.slice(0, 7), upto: upto };
 }
 

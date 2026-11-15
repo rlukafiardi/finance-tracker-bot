@@ -242,4 +242,18 @@ assert.ok(trPage.includes('Tren kategori') && trPage.includes('data-tip="Makan �
 assert.ok(trPage.includes('data-tip="Makan · Okt 2026|Rp 170 rb"'), 'a past month bar');
 assert.strictEqual((trPage.match(/class="tb[ "]/g) || []).length, 18, '3 categories x 6 months');
 
+// Telegram trend: /tren and the chat metric share trendReply_
+app.readTransactions_ = () => ledger;
+app.todayStr_ = () => today;
+const trText = app.trendReply_('');
+assert.ok(trText.startsWith('📈 Tren pengeluaran per kategori, Jun–Nov 2026'), trText);
+assert.ok(trText.includes('🍜 Makan ▼ 20%\n▁▁▁▁█▃\nJun - · Jul - · Agu - · Sep - · Okt 170 rb · Nov 40 rb'), 'Makan block: 170k then 40k on its own scale\n' + trText);
+assert.ok(trText.includes('Belanja baru') && trText.includes('sampai tgl 14'), 'a category with no last-month spending says baru; the partial month says its day');
+assert.ok(!trText.includes('Gaji') && !trText.includes('ShopeePay'), 'income and transfers are not categories');
+const trOne = app.trendReply_('makan');
+assert.ok(trOne.includes('Makan') && !trOne.includes('Belanja') && !trOne.includes('Transport'), 'one category by name, any case');
+assert.ok(app.trendReply_('Hobi').includes('Belum ada pengeluaran di kategori Hobi'), 'unknown category');
+assert.ok(app.handleCommand_('/tren makan', {}).includes('Makan'), '/tren routes to trendReply_');
+assert.strictEqual(app.answerQuery_({ metric: 'category_trend', category: null }, {}), trText, 'chat metric gives the same reply');
+
 console.log('App tests OK');

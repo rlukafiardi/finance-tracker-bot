@@ -52,7 +52,7 @@ const RESPONSE_SCHEMA = {
       type: 'OBJECT',
       nullable: true,
       properties: {
-        metric: { type: 'STRING', enum: ['spending', 'income', 'saving', 'savings_rate', 'balance', 'account_balance', 'recent'] },
+        metric: { type: 'STRING', enum: ['spending', 'income', 'saving', 'savings_rate', 'balance', 'account_balance', 'recent', 'category_trend'] },
         period: { type: 'STRING', enum: ['today', 'week', 'month', 'all', 'custom'], nullable: true },
         account_kind: { type: 'STRING', enum: ['bank', 'ewallet', 'cash', 'tabungan', 'investasi', 'lainnya'], nullable: true },
         limit: { type: 'INTEGER', nullable: true },
