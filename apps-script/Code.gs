@@ -112,6 +112,7 @@ function whereAmI_(msg) {
 // Handlers return a string (sent as is), { reply }, or { action, preview } (sent with ✅/❌ buttons).
 function handleMessage_(msg, to) {
   try {
+    if (handleFeeTyped_(to, msg.text)) return;
     if (handleConfirmText_(to, msg.text)) return;
 
     const ctx = { cats: getCategories_(), accounts: getAccounts_(), pending: getPending_() };

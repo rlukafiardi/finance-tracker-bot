@@ -69,6 +69,7 @@ assert.ok(examples.length >= 40 && withAmounts >= 19, 'golden set size: ' + exam
 function bot(parsed) {
   const ctx = loadApp();
   const log = { sent: [], prepared: 0, asked: 0 };
+  ctx.handleFeeTyped_ = () => false;
   ctx.handleConfirmText_ = () => false;
   ctx.getCategories_ = () => ({ expense: ['Makan'], income: [], saving: [] });
   ctx.getAccounts_ = () => [];

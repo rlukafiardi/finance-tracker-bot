@@ -221,4 +221,25 @@ assert.ok(octPage.includes('data-tip="Transport|Rp 200 rb|54%"') && octPage.incl
 assert.ok(octPage.includes('data-tip="Sep 2026|Tabungan Rp 10,5 jt"') && octPage.includes('data-tip="Okt 2026|Tabungan Rp 19,8 jt"'), 'hero bar tips');
 assert.strictEqual(app.appTip_(['a|b', '<c>']), 'a/b|&lt;c&gt;', 'tip text cannot break the separator or the attribute');
 
+// category trend: 6 months, top categories by their total, same-days delta against the month before
+const trNov = app.appCatTrend_(ledger, '2026-11', today);
+deq(trNov.keys, ['2026-06', '2026-07', '2026-08', '2026-09', '2026-10', '2026-11']);
+deq(trNov.rows.map((c) => [c.category, c.vals]),
+  [['Belanja', [0, 0, 0, 0, 0, 999000]], ['Makan', [0, 0, 0, 0, 170000, 40000]], ['Transport', [0, 0, 0, 0, 200000, 0]]],
+  'expense rows only: the salary, the transfer and savings are not categories');
+deq(app.appTrendDelta_(trNov.rows[1]), { arrow: '▼', text: '20%', good: true }, 'Makan: 40k to 14 Nov vs 50k to 14 Oct (the 31 Oct 120k is outside the same days)');
+deq(app.appTrendDelta_(trNov.rows[0]), { arrow: '', text: 'baru', good: null }, 'no spending last month');
+assert.strictEqual(app.appTrendDelta_(trNov.rows[2]), null, 'nothing in either window: no pill');
+assert.strictEqual(trNov.partial, true);
+assert.strictEqual(trNov.upto, 14);
+const trOct = app.appCatTrend_(ledger, '2026-10', today);
+deq(trOct.rows.map((c) => [c.category, c.vals.at(-1), c.cur, c.prev]), [['Transport', 200000, 200000, 0], ['Makan', 170000, 170000, 0]], 'a past month ignores November');
+assert.strictEqual(trOct.partial, false);
+assert.strictEqual(app.appCatTrend_(ledger, '2026-09', today), null, 'no earlier month, no trend');
+assert.strictEqual(app.appTrend_(null, '2026-09'), '');
+const trPage = app.appPage_(nov.d, '14/11 10:30', nov.view, nav);
+assert.ok(trPage.includes('Tren kategori') && trPage.includes('data-tip="Makan · Nov 2026|Rp 40 rb|sampai tgl 14"'), 'trend panel with a tappable current-month bar');
+assert.ok(trPage.includes('data-tip="Makan · Okt 2026|Rp 170 rb"'), 'a past month bar');
+assert.strictEqual((trPage.match(/class="tb[ "]/g) || []).length, 18, '3 categories x 6 months');
+
 console.log('App tests OK');

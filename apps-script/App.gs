@@ -110,7 +110,77 @@ function appModel_(all, accounts, budgets, monthParam, today) {
   const weekRows = between_(all, { from: appWeekStart_(month + '-01'), to: new Date(Date.parse(appWeekStart_(appMonthLast_(month)) + 'T00:00:00Z') + 6 * 86400000).toISOString().slice(0, 10) })
     .filter(function (r) { return r.type === 'expense' || r.type === 'income'; })
     .map(function (r) { return { date: r.date, type: r.type, amount: r.amount }; });
-  return { d: d, view: { month: month, months: months, current: month === today.slice(0, 7), rows: rows, weekRows: weekRows, today: today } };
+  return { d: d, view: { month: month, months: months, current: month === today.slice(0, 7), rows: rows, weekRows: weekRows, today: today,
+    catTrend: appCatTrend_(all, month, today) } };
+}
+
+// Spending per category over the 6 months ending at `month`, for the top APP_RAMP_N categories of those months (expense
+// only, transfers and savings excluded like everywhere else). The delta compares the chosen month with the month before over
+// the same days, so a month in progress is not set against a whole one. Null until there are 2 months of data.
+const APP_TREND_MONTHS = 6;
+
+function appCatTrend_(all, month, today) {
+  const keys = [];
+  let y = Number(month.slice(0, 4));
+  let m = Number(month.slice(5, 7));
+  for (let i = 0; i < APP_TREND_MONTHS; i++) {
+    keys.unshift(y + '-' + (m < 10 ? '0' : '') + m);
+    m -= 1;
+    if (m === 0) { m = 12; y -= 1; }
+  }
+  const end = appMonthEnd_(month, today);
+  const upto = Number(end.slice(8, 10));
+  const prevKey = keys[APP_TREND_MONTHS - 2];
+  const prevUpto = Math.min(upto, Number(appMonthLast_(prevKey).slice(8, 10)));
+  const by = {};
+  all.forEach(function (r) {
+    if (r.type !== 'expense' || r.date > end) return;
+    const at = keys.indexOf(r.date.slice(0, 7));
+    if (at < 0) return;
+    const c = by[r.category] || (by[r.category] = { category: r.category, vals: keys.map(function () { return 0; }), cur: 0, prev: 0 });
+    c.vals[at] += r.amount;
+    const day = Number(r.date.slice(8, 10));
+    if (at === APP_TREND_MONTHS - 1 && day <= upto) c.cur += r.amount;
+    if (at === APP_TREND_MONTHS - 2 && day <= prevUpto) c.prev += r.amount;
+  });
+  const first = all.reduce(function (min, r) { return r.date < min ? r.date : min; }, today).slice(0, 7);
+  if (first >= month) return null;
+  const rows = Object.keys(by).map(function (k) { return by[k]; }).map(function (c) {
+    c.total = c.vals.reduce(function (t, v) { return t + v; }, 0);
+    return c;
+  }).sort(function (a, b) { return b.total - a.total; }).slice(0, APP_RAMP_N);
+  return { keys: keys, rows: rows, partial: month === today.slice(0, 7), upto: upto };
+}
+
+function appTrendDelta_(c) {
+  if (!c.prev && !c.cur) return null;
+  if (!c.prev) return { arrow: '', text: 'baru', good: null };
+  const pct = Math.round((c.cur - c.prev) / c.prev * 100);
+  if (Math.abs(pct) < 5) return { arrow: '≈', text: 'sama', good: null };
+  return { arrow: pct > 0 ? '▲' : '▼', text: Math.abs(pct) + '%', good: pct < 0 };
+}
+
+// One row per top category: six bars (own scale per row, so the shape shows), a tap shows the month's amount.
+function appTrend_(t, month) {
+  if (!t || !t.rows.length) return '';
+  const mon = function (k) { return MONTHS_ID[Number(k.slice(5, 7)) - 1].slice(0, 3); };
+  const head = t.keys.map(function (k) { return '<span>' + htmlEsc_(mon(k)) + '</span>'; }).join('');
+  const rows = t.rows.map(function (c) {
+    const peak = Math.max.apply(null, c.vals.concat([1]));
+    const delta = appTrendDelta_(c);
+    const bars = c.vals.map(function (v, i) {
+      const last = i === t.keys.length - 1;
+      const tip = [c.category + ' · ' + mon(t.keys[i]) + ' ' + t.keys[i].slice(0, 4), compactRp_(v)].concat(last && t.partial ? ['sampai tgl ' + t.upto] : []);
+      return '<button type="button" class="tb' + (last ? ' cur' : '') + '" data-tip="' + appTip_(tip) + '" title="' + htmlEsc_(tip.join(' · ')) +
+        '" aria-pressed="false"><span style="height:' + (v > 0 ? Math.max(6, Math.round(v / peak * 100)) : 2) + '%"></span></button>';
+    }).join('');
+    return '<div class="trow">' + appTile_(appEmoji_(c.category, 'expense')) + '<div class="tname"><div class="name">' + htmlEsc_(c.category) +
+      '</div>' + (delta ? appPill_(delta) : '') + '</div><div class="tbars">' + bars + '</div></div>';
+  }).join('');
+  return '<section class="panel"><h2>Tren kategori</h2><p class="cap" data-cap>' + htmlEsc_('6 bulan sampai ' + appMonthName_(month)) + '</p>' +
+    '<div class="thead"><span></span><span></span><div class="tmon">' + head + '</div></div><div data-tips>' + rows + '</div>' +
+    '<p class="tiphint">' + htmlEsc_('Ketuk batang untuk melihat angkanya. Tiap kategori punya skala sendiri, jadi lihat bentuknya, bukan tinggi antar kategori. ' +
+    'Persen = bulan ini dibanding bulan sebelumnya pada tanggal yang sama' + (t.partial ? ' (sampai tgl ' + t.upto + ')' : '') + '.') + '</p></section>';
 }
 
 // Filters and totals also run in the browser: they are written without outside references and sent as source text.
@@ -509,7 +579,7 @@ function appSections_(d, view) {
     '<p id="count" class="count"></p><div id="list" class="listwrap"></div>';
 
   return '<section data-tab="ringkasan">' + heroHtml + cards + weekHtml + '</section>' +
-    '<section data-tab="kategori" hidden><div class="panel"><h2>Pengeluaran per kategori</h2>' + catHtml + '</div>' + budgetHtml + '</section>' +
+    '<section data-tab="kategori" hidden><div class="panel"><h2>Pengeluaran per kategori</h2>' + catHtml + '</div>' + appTrend_(view.catTrend, view.month) + budgetHtml + '</section>' +
     '<section data-tab="transaksi" hidden>' + listHtml + '</section>' +
     '<section data-tab="akun" hidden>' + accountHtml + '</section>';
 }
@@ -774,6 +844,11 @@ function appPage_(d, stamp, view, nav) {
     '.col{flex:1;width:100%;display:flex;align-items:flex-end}.col span{display:block;width:100%;border-radius:7px 7px 3px 3px;transform-origin:bottom}',
     '.col span{background:var(--bar)}.wk.on .col span{background:var(--accent)}.wk.future .col span{background:var(--track)}',
     '.wl{font-size:10px;line-height:12px;min-height:36px;color:var(--ink2);margin-top:4px;white-space:nowrap;text-align:center}.wl b{display:block;font-size:11px;color:var(--ink)}',
+    '.thead,.trow{display:grid;grid-template-columns:auto 1fr 132px;gap:10px;align-items:center}.thead{margin-bottom:6px}.thead span:first-child{width:36px}',
+    '.tmon{display:flex;gap:4px}.tmon span{flex:1;text-align:center;font-size:10px;color:var(--ink2)}.trow{margin-bottom:12px}.trow:last-child{margin-bottom:0}',
+    '.tname{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}.tbars{display:flex;gap:4px;height:40px;align-items:flex-end}',
+    'button.tb{flex:1;min-width:0;height:100%;display:flex;align-items:flex-end;border:0;background:none;padding:0;cursor:pointer}',
+    '.tb span{display:block;width:100%;border-radius:3px 3px 1px 1px;background:var(--bar)}.tb.cur span{background:var(--accent)}.tb.on span{background:var(--ink2)}',
     '.cap{font-size:13px;font-weight:700;margin:0 0 10px;min-height:19px}.tiphint{font-size:11px;color:var(--ink2);margin:8px 0 0}',
     '.donut{position:relative;width:176px;height:176px;margin:4px auto 14px}.donut svg{width:100%;height:100%}',
     '.donut circle{fill:none;stroke-width:15}.dt{stroke:var(--track)}.sl{stroke-linecap:butt;cursor:pointer;outline:none}.donut circle.sl.on,.donut circle.sl:focus-visible{stroke-width:19}',

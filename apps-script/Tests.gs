@@ -311,12 +311,19 @@ function runFeeTests() {
   const transfer = function (to) { return { id: 'abc12345', type: 'transfer', account: 'BNI', to_account: to }; };
   const flat = function (b) { return b ? [].concat.apply([], b).map(function (x) { return x.text + '|' + x.callback_data; }) : null; };
   const checks = [
-    ['bank transfer keeps the presets', flat(feeButtons_(log([transfer('BCA')]))).length === 4],
-    ['GoPay (fee shown by the bank) keeps the presets', flat(feeButtons_(log([transfer('GoPay')]))).length === 4],
-    ['ShopeePay: one fee button on the wallet + Gratis', JSON.stringify(flat(feeButtons_(log([transfer('ShopeePay')])))) ===
-      JSON.stringify(['+ 500 di ShopeePay|fee:abc12345:500:w', '🆓 Gratis|fee:abc12345:0'])],
+    ['bank transfer: 3 presets + Lain + Gratis', flat(feeButtons_(log([transfer('BCA')]))).length === 5],
+    ['GoPay (fee shown by the bank) keeps the presets', flat(feeButtons_(log([transfer('GoPay')]))).length === 5],
+    ['ShopeePay: wallet fee button + Lain + Gratis', JSON.stringify(flat(feeButtons_(log([transfer('ShopeePay')])))) ===
+      JSON.stringify(['+ 500 di ShopeePay|fee:abc12345:500:w', '✏️ Lain|fee:abc12345:x:w', '🆓 Gratis|fee:abc12345:0'])],
     ['OVO fee is 1.000', flat(feeButtons_(log([transfer('OVO')])))[0] === '+ 1 rb di OVO|fee:abc12345:1000:w'],
-    ['name with a space still matches', flat(feeButtons_(log([transfer('Shopee Pay')]))).length === 2],
+    ['name with a space still matches', flat(feeButtons_(log([transfer('Shopee Pay')]))).length === 3],
+    ['bank transfer Lain button', flat(feeButtons_(log([transfer('BCA')])))[3] === '✏️ Lain|fee:abc12345:x'],
+    ['typed fee: 3rb', parseTypedFee_('3rb') === 3000],
+    ['typed fee: Rp 3.500', parseTypedFee_('Rp 3.500') === 3500],
+    ['typed fee: 3,5rb', parseTypedFee_('3,5rb') === 3500],
+    ['typed fee: 3500', parseTypedFee_(' 3500 ') === 3500],
+    ['typed fee: a new transaction is not a fee', parseTypedFee_('makan 35rb') === null],
+    ['typed fee: words are not a fee', parseTypedFee_('tiga ribu') === null],
     ['no buttons when an expense came with the transfer', feeButtons_(log([transfer('OVO'), { type: 'expense' }])) === null],
     ['no buttons for other actions', feeButtons_({ kind: 'emails', txs: [transfer('OVO')] }) === null],
   ];
