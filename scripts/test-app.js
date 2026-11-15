@@ -240,6 +240,7 @@ assert.strictEqual(app.appTrend_(null, '2026-09'), '');
 const trPage = app.appPage_(nov.d, '14/11 10:30', nov.view, nav);
 assert.ok(trPage.includes('Tren kategori') && trPage.includes('data-tip="Makan · Nov 2026|Rp 40 rb|sampai tgl 14"'), 'trend panel with a tappable current-month bar');
 assert.ok(trPage.includes('data-tip="Makan · Okt 2026|Rp 170 rb"'), 'a past month bar');
+assert.ok(trPage.includes('&quot;Baru&quot; = belum ada pengeluaran'), 'the app hint explains Baru when a row has it');
 assert.strictEqual((trPage.match(/class="tb[ "]/g) || []).length, 18, '3 categories x 6 months');
 
 // Telegram trend: /tren and the chat metric share trendReply_
@@ -259,5 +260,14 @@ assert.ok(trKw.includes('Okt 50 rb') && trKw.includes('Nov 40 rb'), trKw);
 assert.ok(app.trendReply_('Hobi', ctxT).includes('Belum ada pengeluaran untuk "Hobi"'), 'nothing matches: says so, does not fall back to all categories');
 assert.ok(app.handleCommand_('/tren makan', ctxT).includes('Makan'), '/tren routes to trendReply_');
 assert.strictEqual(app.answerQuery_({ metric: 'category_trend', category: null }, ctxT), trText, 'chat metric gives the same reply');
+
+// "tren ..." messages are read in code, not by Gemini
+[['tren', ''], ['Tren kategori', ''], ['tren pengeluaran', ''], ['tren makan', 'makan'], ['tren ngopi 6 bulan terakhir?', 'ngopi'],
+ ['tren kategori makan', 'makan'], ['/tren makan', null], ['trend makan', null], ['makan tren 5rb', null], ['trendy', null]].forEach(([text, want]) => {
+  assert.strictEqual(app.parseTrendWord_(text), want, JSON.stringify(text));
+});
+assert.ok(trText.includes('"baru" = belum ada di bulan lalu pada tanggal itu'), 'the footer explains baru');
+assert.ok(!app.trendReply_('makan', ctxT).includes('"baru"'), 'no explanation when no row is baru');
+assert.strictEqual(app.answerQuery_({ metric: 'category_trend', category: null, merchant: 'makan' }, ctxT), app.trendReply_('makan', ctxT), 'a word Gemini put in merchant still counts');
 
 console.log('App tests OK');

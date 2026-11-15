@@ -120,6 +120,11 @@ function handleMessage_(msg, to) {
     if (msg.text.charAt(0) === '/') {
       r = handleCommand_(msg.text, ctx);
     } else {
+      const trendWord = parseTrendWord_(msg.text); // "tren ..." is answered in code: no Gemini call, no wrong guess
+      if (trendWord !== null) {
+        sendMessage_(to, trendReply_(trendWord, ctx));
+        return;
+      }
       const parsed = parseMessage_(msg.text, null, ctx);
       const mismatch = amountProblem_(msg.text, parsed);
       if (mismatch) {

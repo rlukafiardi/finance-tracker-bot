@@ -637,7 +637,7 @@ function answerQuery_(q, ctx) {
   if (!q) return 'Pertanyaan tidak jelas. Contoh: "pengeluaran minggu ini?".';
   if (q.metric === 'account_balance') return balanceReply_(ctx, q.account, q.account_kind);
   if (q.metric === 'recent') return recentReply_(q.limit);
-  if (q.metric === 'category_trend') return trendReply_(q.category ? String(q.category).trim() : '', ctx);
+  if (q.metric === 'category_trend') return trendReply_(String(q.category || q.merchant || '').trim(), ctx);
 
   const range = periodRange_(q.period || 'month');
   if (!range) return 'Periode itu belum didukung 🤖 Coba: hari ini, minggu ini, bulan ini, atau sampai sekarang.';

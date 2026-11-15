@@ -197,6 +197,14 @@ function backupSheet_() {
 // ("tren ngopi"), since a keyword like that is not a category.
 const TREND_BLOCKS = '▁▂▃▄▅▆▇█';
 
+// "tren", "tren kategori", "tren makan", "tren ngopi 6 bulan terakhir?" -> the word asked about ('' for all categories);
+// null when the message is not a trend request.
+function parseTrendWord_(text) {
+  const m = String(text).trim().match(/^tren\b\s*(.*)$/i);
+  if (!m) return null;
+  return m[1].replace(/[?!.]+$/, '').replace(/\s*\d*\s*bulan(\s+terakhir)?$/i, '').replace(/^(pengeluaran|kategori)\b\s*/i, '').trim();
+}
+
 function trendReply_(term, ctx) {
   const today = todayStr_();
   const word = String(term || '').trim();
@@ -221,7 +229,8 @@ function trendReply_(term, ctx) {
     lines.push(blocks(c.vals));
     lines.push(c.vals.map(function (v, i) { return mon(t.keys[i]) + ' ' + (v > 0 ? compactRp_(v).replace('Rp ', '') : '-'); }).join(' · '));
   });
-  lines.push('', '% = bulan ini dibanding bulan lalu' + (t.partial ? ' sampai tgl ' + t.upto : '') + '. ' +
+  const hasNew = t.rows.some(function (c) { return c.cur && !c.prev; });
+  lines.push('', '% = bulan ini dibanding bulan lalu' + (t.partial ? ' sampai tgl ' + t.upto : '') + (hasNew ? '; "baru" = belum ada di bulan lalu pada tanggal itu' : '') + '. ' +
     (match ? 'Dicari di toko dan catatan, semua kategori.' : 'Tiap kategori punya skala sendiri.'));
   return lines.join('\n');
 }
