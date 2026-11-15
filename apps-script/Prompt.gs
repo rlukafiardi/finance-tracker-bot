@@ -43,7 +43,7 @@ function buildPrompt_(today, ctx) {
     '  never balance; metric balance is only the income minus expense of a period: "sisa bulan ini?", "sisa uang minggu ini?")',
     '  or the latest entries ("5 transaksi terakhir", metric recent, limit = that number, 5 if not given);',
     '  or the spending trend over the last months ("tren kategori", "tren makan", "pengeluaran per kategori 6 bulan", metric category_trend,',
-    '  category = the one named, else null);',
+    '  category = the word named after "tren", whether or not it is an allowed category ("tren ngopi" -> ngopi), else null);',
     '  current money in a kind of account is account_balance with account_kind: "berapa tabunganku (sekarang)?" -> tabungan,',
     '  "investasiku?" -> investasi, "saldo e-wallet?" -> ewallet. period: "all" for "sekarang", "total", "selama ini";',
     '  null when no period is mentioned. Spending at a merchant or from an account is metric spending with',

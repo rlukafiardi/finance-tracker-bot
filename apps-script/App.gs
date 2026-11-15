@@ -115,11 +115,11 @@ function appModel_(all, accounts, budgets, monthParam, today) {
 }
 
 // Spending per category over the 6 months ending at `month`, for the top APP_RAMP_N categories of those months (expense
-// only, transfers and savings excluded like everywhere else; `only` = one category by name instead of the top). The delta compares the chosen month with the month before over
+// only, transfers and savings excluded like everywhere else; `only` = one row by name instead of the top; with `match` the row holds every expense that `match` accepts). The delta compares the chosen month with the month before over
 // the same days, so a month in progress is not set against a whole one. Null until there are 2 months of data.
 const APP_TREND_MONTHS = 6;
 
-function appCatTrend_(all, month, today, only) {
+function appCatTrend_(all, month, today, only, match) {
   const keys = [];
   let y = Number(month.slice(0, 4));
   let m = Number(month.slice(5, 7));
@@ -134,10 +134,11 @@ function appCatTrend_(all, month, today, only) {
   const prevUpto = Math.min(upto, Number(appMonthLast_(prevKey).slice(8, 10)));
   const by = {};
   all.forEach(function (r) {
-    if (r.type !== 'expense' || r.date > end) return;
+    if (r.type !== 'expense' || r.date > end || (match && !match(r))) return;
     const at = keys.indexOf(r.date.slice(0, 7));
     if (at < 0) return;
-    const c = by[r.category] || (by[r.category] = { category: r.category, vals: keys.map(function () { return 0; }), cur: 0, prev: 0 });
+    const name = match ? only : r.category; // a keyword search is one row named after the keyword
+    const c = by[name] || (by[name] = { category: name, vals: keys.map(function () { return 0; }), cur: 0, prev: 0 });
     c.vals[at] += r.amount;
     const day = Number(r.date.slice(8, 10));
     if (at === APP_TREND_MONTHS - 1 && day <= upto) c.cur += r.amount;

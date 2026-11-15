@@ -245,15 +245,19 @@ assert.strictEqual((trPage.match(/class="tb[ "]/g) || []).length, 18, '3 categor
 // Telegram trend: /tren and the chat metric share trendReply_
 app.readTransactions_ = () => ledger;
 app.todayStr_ = () => today;
-const trText = app.trendReply_('');
+const ctxT = { cats: { expense: ['Makan', 'Transport', 'Belanja'] } };
+const trText = app.trendReply_('', ctxT);
 assert.ok(trText.startsWith('📈 Tren pengeluaran per kategori, Jun–Nov 2026'), trText);
 assert.ok(trText.includes('🍜 Makan ▼ 20%\n▁▁▁▁█▃\nJun - · Jul - · Agu - · Sep - · Okt 170 rb · Nov 40 rb'), 'Makan block: 170k then 40k on its own scale\n' + trText);
 assert.ok(trText.includes('Belanja baru') && trText.includes('sampai tgl 14'), 'a category with no last-month spending says baru; the partial month says its day');
 assert.ok(!trText.includes('Gaji') && !trText.includes('ShopeePay'), 'income and transfers are not categories');
-const trOne = app.trendReply_('makan');
+const trOne = app.trendReply_('makan', ctxT);
 assert.ok(trOne.includes('Makan') && !trOne.includes('Belanja') && !trOne.includes('Transport'), 'one category by name, any case');
-assert.ok(app.trendReply_('Hobi').includes('Belum ada pengeluaran di kategori Hobi'), 'unknown category');
-assert.ok(app.handleCommand_('/tren makan', {}).includes('Makan'), '/tren routes to trendReply_');
-assert.strictEqual(app.answerQuery_({ metric: 'category_trend', category: null }, {}), trText, 'chat metric gives the same reply');
+const trKw = app.trendReply_('warung', ctxT);
+assert.ok(trKw.includes('📈 Tren pengeluaran "warung", Jun–Nov 2026') && trKw.includes('🔎 warung ▼ 20%'), 'a word that is not a category searches merchant and note\n' + trKw);
+assert.ok(trKw.includes('Okt 50 rb') && trKw.includes('Nov 40 rb'), trKw);
+assert.ok(app.trendReply_('Hobi', ctxT).includes('Belum ada pengeluaran untuk "Hobi"'), 'nothing matches: says so, does not fall back to all categories');
+assert.ok(app.handleCommand_('/tren makan', ctxT).includes('Makan'), '/tren routes to trendReply_');
+assert.strictEqual(app.answerQuery_({ metric: 'category_trend', category: null }, ctxT), trText, 'chat metric gives the same reply');
 
 console.log('App tests OK');

@@ -192,27 +192,36 @@ function backupSheet_() {
   return name;
 }
 
-// "/tren" or "tren kategori": the same 6-month category trend as the app's Kategori tab, as text. With a category name,
-// only that one (any expense category, not just the top 5).
+// "/tren" or "tren kategori": the same 6-month category trend as the app's Kategori tab, as text. With a word after it,
+// one row: an expense category when the word is one, else every expense whose merchant or note contains the word
+// ("tren ngopi"), since a keyword like that is not a category.
 const TREND_BLOCKS = '▁▂▃▄▅▆▇█';
 
-function trendReply_(category) {
+function trendReply_(term, ctx) {
   const today = todayStr_();
-  const t = appCatTrend_(readTransactions_(), today.slice(0, 7), today, category);
+  const word = String(term || '').trim();
+  const category = word && ctx.cats.expense.find(function (c) { return c.toLowerCase() === word.toLowerCase(); });
+  const keyword = word.toLowerCase();
+  const match = word && !category ? function (r) { return (r.merchant + ' ' + r.note).toLowerCase().indexOf(keyword) >= 0; } : null;
+  const t = appCatTrend_(readTransactions_(), today.slice(0, 7), today, category || word, match);
   if (!t) return 'Belum ada data bulan sebelumnya untuk membandingkan 📈';
-  if (!t.rows.length) return category ? 'Belum ada pengeluaran di kategori ' + category + ' dalam 6 bulan ini.' : 'Belum ada pengeluaran dalam 6 bulan ini.';
+  if (!t.rows.length) {
+    return word ? 'Belum ada pengeluaran untuk "' + word + '" (kategori, toko atau catatan) dalam 6 bulan ini.' : 'Belum ada pengeluaran dalam 6 bulan ini.';
+  }
   const mon = function (k) { return MONTHS_ID[Number(k.slice(5, 7)) - 1].slice(0, 3); };
   const blocks = function (vals) {
     const peak = Math.max.apply(null, vals.concat([1]));
     return vals.map(function (v) { return v > 0 ? TREND_BLOCKS.charAt(Math.max(1, Math.round(v / peak * 7))) : TREND_BLOCKS.charAt(0); }).join('');
   };
-  const lines = ['📈 Tren pengeluaran per kategori, ' + mon(t.keys[0]) + '–' + mon(t.keys[t.keys.length - 1]) + ' ' + t.keys[t.keys.length - 1].slice(0, 4)];
+  const lines = ['📈 Tren pengeluaran ' + (match ? '"' + word + '"' : 'per kategori') + ', ' + mon(t.keys[0]) + '–' + mon(t.keys[t.keys.length - 1]) + ' ' + t.keys[t.keys.length - 1].slice(0, 4)];
   t.rows.forEach(function (c) {
     const d = appTrendDelta_(c);
-    lines.push('', emojiFor_({ category: c.category, type: 'expense' }) + ' ' + c.category + (d ? ' ' + (d.arrow ? d.arrow + ' ' : '') + d.text : ''));
+    const icon = match ? '🔎' : emojiFor_({ category: c.category, type: 'expense' });
+    lines.push('', icon + ' ' + c.category + (d ? ' ' + (d.arrow ? d.arrow + ' ' : '') + d.text : ''));
     lines.push(blocks(c.vals));
     lines.push(c.vals.map(function (v, i) { return mon(t.keys[i]) + ' ' + (v > 0 ? compactRp_(v).replace('Rp ', '') : '-'); }).join(' · '));
   });
-  lines.push('', '% = bulan ini dibanding bulan lalu' + (t.partial ? ' sampai tgl ' + t.upto : '') + '. Tiap kategori punya skala sendiri.');
+  lines.push('', '% = bulan ini dibanding bulan lalu' + (t.partial ? ' sampai tgl ' + t.upto : '') + '. ' +
+    (match ? 'Dicari di toko dan catatan, semua kategori.' : 'Tiap kategori punya skala sendiri.'));
   return lines.join('\n');
 }

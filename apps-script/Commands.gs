@@ -125,7 +125,7 @@ function handleCommand_(text, ctx) {
     case '/budget':
       return budgetCommand_(args, ctx);
     case '/tren':
-      return trendReply_(args.join(' ').trim());
+      return trendReply_(args.join(' ').trim(), ctx);
     case '/rutin':
       return recurringCommand_(args);
     case '/rekap':
