@@ -229,8 +229,11 @@ function trendReply_(term, ctx) {
     lines.push(blocks(c.vals));
     lines.push(c.vals.map(function (v, i) { return mon(t.keys[i]) + ' ' + (v > 0 ? compactRp_(v).replace('Rp ', '') : '-'); }).join(' · '));
   });
-  const hasNew = t.rows.some(function (c) { return c.cur && !c.prev; });
-  lines.push('', '% = bulan ini dibanding bulan lalu' + (t.partial ? ' sampai tgl ' + t.upto : '') + (hasNew ? '; "baru" = belum ada di bulan lalu pada tanggal itu' : '') + '. ' +
-    (match ? 'Dicari di toko dan catatan, semua kategori.' : 'Tiap kategori punya skala sendiri.'));
+  const deltas = t.rows.map(appTrendDelta_);
+  const upto = t.partial ? ' sampai tgl ' + t.upto : '';
+  lines.push('');
+  if (deltas.some(function (d) { return d && d.arrow; })) lines.push('▲ ▼ = naik/turun dibanding bulan lalu' + upto + '.');
+  if (deltas.some(function (d) { return d && d.text === 'baru'; })) lines.push('"baru" = belum ada pengeluaran di bulan lalu' + upto + '.');
+  lines.push(match ? 'Dicari di toko dan catatan, semua kategori.' : 'Tiap kategori punya skala sendiri.');
   return lines.join('\n');
 }

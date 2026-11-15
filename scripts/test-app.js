@@ -266,8 +266,10 @@ assert.strictEqual(app.answerQuery_({ metric: 'category_trend', category: null }
  ['tren kategori makan', 'makan'], ['/tren makan', null], ['trend makan', null], ['makan tren 5rb', null], ['trendy', null]].forEach(([text, want]) => {
   assert.strictEqual(app.parseTrendWord_(text), want, JSON.stringify(text));
 });
-assert.ok(trText.includes('"baru" = belum ada di bulan lalu pada tanggal itu'), 'the footer explains baru');
-assert.ok(!app.trendReply_('makan', ctxT).includes('"baru"'), 'no explanation when no row is baru');
+assert.ok(trText.includes('\n▲ ▼ = naik/turun dibanding bulan lalu sampai tgl 14.\n"baru" = belum ada pengeluaran di bulan lalu sampai tgl 14.\nTiap kategori'), 'the footer explains arrows and baru, one per line\n' + trText);
+const onlyNew = app.trendReply_('belanja', ctxT);
+assert.ok(onlyNew.includes('Belanja baru') && onlyNew.includes('"baru" =') && !onlyNew.includes('▲ ▼'), 'no arrow explanation when no row shows a percent\n' + onlyNew);
+assert.ok(!app.trendReply_('makan', ctxT).includes('"baru"'), 'no baru explanation when no row is baru');
 assert.strictEqual(app.answerQuery_({ metric: 'category_trend', category: null, merchant: 'makan' }, ctxT), app.trendReply_('makan', ctxT), 'a word Gemini put in merchant still counts');
 
 console.log('App tests OK');

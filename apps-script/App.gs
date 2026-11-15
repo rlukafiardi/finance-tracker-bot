@@ -184,8 +184,9 @@ function appTrend_(t, month) {
   return '<section class="panel"><h2>Tren kategori</h2><p class="cap" data-cap>' + htmlEsc_('6 bulan sampai ' + appMonthName_(month)) + '</p>' +
     '<div class="thead"><span></span><span></span><div class="tmon">' + head + '</div></div><div data-tips>' + rows + '</div>' +
     '<p class="tiphint">' + htmlEsc_('Ketuk batang untuk melihat angkanya. Tiap kategori punya skala sendiri, jadi lihat bentuknya, bukan tinggi antar kategori. ' +
-    'Persen = bulan ini dibanding bulan sebelumnya pada tanggal yang sama' + (t.partial ? ' (sampai tgl ' + t.upto + ')' : '') + '.' +
-    (t.rows.some(function (c) { return c.cur && !c.prev; }) ? ' "Baru" = belum ada pengeluaran di bulan sebelumnya pada tanggal itu.' : '')) + '</p></section>';
+    (t.rows.some(function (c) { const d = appTrendDelta_(c); return d && d.arrow; })
+      ? 'Persen = bulan ini dibanding bulan sebelumnya pada tanggal yang sama' + (t.partial ? ' (sampai tgl ' + t.upto + ')' : '') + '. ' : '') +
+    (t.rows.some(function (c) { return c.cur && !c.prev; }) ? '"Baru" = belum ada pengeluaran di bulan sebelumnya pada tanggal itu.' : '')) + '</p></section>';
 }
 
 // Filters and totals also run in the browser: they are written without outside references and sent as source text.
