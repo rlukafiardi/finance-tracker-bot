@@ -33,6 +33,7 @@ dashboard or app answers "how much did I spend this month" and "how much money d
 
 ## Status
 - Live, deployed @48 (2026-11-16; rollback = redeploy @47 from Deploy > Manage deployments). Bot, checked by me end to end: logging with ✅/❌, corrections, delete/undo, accounts with kinds and live balances, budgets with warnings, summaries and `/rekap`, admin-fee buttons, recurring entries (first real due batch seen by me, 2026-11-22), Gmail import (BNI and BCA; the 90-day audit parsed 130 of 130 emails; `Kode tarik tunai` is not imported on purpose).
+- BNI opening balance set to 1,768,538 on 2026-11-24 to match the BNI app (41,138); the original 20k gap was never traced to a row (details in the decisions log).
 - Live and checked by me on my phone: the amount check (amounts in words, e.g. "tiga puluh lima ribu", are refused on purpose, my call); the app read-only (numbers, month switch from the icon, Transaksi list and filters, Telegram button, timing, light only, hero = Tabungan); the Telegram test messages (plain-text format, amount check). `runExamples()` on @40: 41/47, 0 amount-check refusals; the 6 misses (3 query fields missing, 2 stale expectations, "halo" gives help) are listed in the decisions log and left as they are (my call).
 - Built and tested locally, not live: recording from the app. Open live checks, after setting `APP_WRITE=on`: `google.script.run` from the home-screen icon, `=1+1` stored as text via the app, save time with the dashboard refresh (over 5 s: move the refresh to a one-shot trigger), two quick taps = one row, a Rp1.000 test entry seen in Sheet + `/terakhir` + dashboard and removed with the bot's delete by id. Stop: the page cannot call the server -> the app stays read-only.
 - Tooling: pre-commit via `.githooks/` (after a fresh clone: `git config core.hooksPath .githooks`): gitleaks, large-file and merge-conflict checks; Dependabot monthly (npm, pre-commit). No GitHub Actions CI while the account has a billing lock. Architecture diagram: `docs/architecture.py` (updated 2026-11-14).
@@ -43,6 +44,7 @@ dashboard or app answers "how much did I spend this month" and "how much money d
 - Ideas (state):
   - done: admin-fee buttons incl. wallet fee and free-text fee (Lain); category trend over months in the app and in Telegram (`/tren`); recurring entries (monthly only); monthly recap for a chosen month; month picker and transaction list with filters in the app; Telegram button in the app; amount check in the bot path
   - open, my pick: receipt photos and voice notes via Gemini multimodal; savings goals
+  - open, my call: widen the Gmail-import duplicate window beyond ±1 day (typed and email rows 2+ days apart both get saved; widening can hide real repeat purchases)
   - open, low priority: top merchants, daily allowance (budget left / days left), CSV export of a filtered list
   - open, not needed yet: weekly and yearly recurrences, changing a rule's amount without removing it
   - open, liked less: runway and forecast, net worth, debts and split bills, bill reminders, large-expense warnings, streaks, monthly PDF
