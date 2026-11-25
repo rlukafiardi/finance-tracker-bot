@@ -511,17 +511,72 @@ function readTransactions_() {
   return sh.getRange(2, 1, last - 1, SHEET_HEADERS.length).getValues().map(rowToTx_);
 }
 
-function recentReply_(n) {
-  const count = Math.min(Math.max(Number(n) || 5, 1), 20);
-  const sh = sheet_('transactions');
-  const last = sh.getLastRow();
-  if (last < 2) return 'Belum ada transaksi 🤖';
-  const start = Math.max(2, last - count + 1);
-  const rows = sh.getRange(start, 1, last - start + 1, SHEET_HEADERS.length).getValues();
-  return '🧾 ' + (last - start + 1) + ' transaksi terakhir:\n\n' + rows.reverse().map(function (r) {
-    const t = rowToTx_(r);
-    return describe_(t) + ' · #' + t.id;
-  }).join('\n');
+const LIST_MAX = 30;
+const LIST_CHARS = 3500; // Telegram refuses a message over 4096 characters
+
+// Categories (expense, income, saving) matching a word: the exact name, else every name that contains the word or that
+// the word contains ("transportasi" finds "Transport").
+function findCategories_(word, ctx) {
+  const key = String(word).trim().toLowerCase();
+  const all = [];
+  ['expense', 'income', 'saving'].forEach(function (type) {
+    (ctx.cats[type] || []).forEach(function (c) { if (all.indexOf(c) < 0) all.push(c); });
+  });
+  const exact = all.filter(function (c) { return c.toLowerCase() === key; });
+  if (exact.length) return exact;
+  return all.filter(function (c) { return c.toLowerCase().indexOf(key) >= 0 || key.indexOf(c.toLowerCase()) >= 0; });
+}
+
+// Transactions newest date first (same date: saved later first). f = { limit, date: YYYY-MM-DD, period, account,
+// category, merchant }, all optional; with a date or period and no limit it shows the whole day or period (up to LIST_MAX).
+function listReply_(f, ctx) {
+  const what = [];
+  let rows = readTransactions_().slice().reverse();
+  const range = ['today', 'week', 'month'].indexOf(f.period) >= 0 ? periodRange_(f.period) : null;
+  if (f.date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(f.date)) return 'Tanggal tidak dikenali 🤖 Coba: /terakhir 17 nov';
+    rows = rows.filter(function (r) { return r.date === f.date; });
+    what.push('tgl ' + Number(f.date.slice(8)) + ' ' + MONTHS_ID[Number(f.date.slice(5, 7)) - 1].slice(0, 3));
+  } else if (range) {
+    rows = rows.filter(function (r) { return r.date >= range.from && r.date <= range.to; });
+    what.push(range.label);
+  }
+  if (f.account) {
+    const account = matchAccount_(f.account, ctx.accounts);
+    if (!account) return 'Akun "' + f.account + '" tidak ada. Akun: ' + ctx.accounts.map(function (a) { return a.name; }).join(', ');
+    rows = rows.filter(function (r) { return sameName_(r.account, account) || (r.type === 'transfer' && sameName_(r.to_account, account)); });
+    what.push('pakai ' + account);
+  }
+  if (f.category) {
+    const cats = findCategories_(f.category, ctx);
+    if (cats.length !== 1) {
+      return 'Kategori "' + f.category + '" ' + (cats.length ? 'cocok dengan beberapa: ' + cats.join(', ') : 'tidak ada. Coba "kategori apa aja?"');
+    }
+    rows = rows.filter(function (r) { return sameName_(r.category, cats[0]); });
+    what.push(cats[0]);
+  }
+  if (f.merchant) {
+    const merchant = String(f.merchant).toLowerCase();
+    rows = rows.filter(function (r) { return r.merchant.toLowerCase().indexOf(merchant) >= 0; });
+    what.push('di ' + f.merchant);
+  }
+  rows.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; }); // stable: ties keep newest-saved first
+
+  const limit = Math.min(Number(f.limit) || (f.date || range ? LIST_MAX : 5), LIST_MAX);
+  const lines = [];
+  let chars = 0;
+  rows.slice(0, limit).some(function (t) {
+    const line = describe_(t) + ' · #' + t.id;
+    if (chars + line.length > LIST_CHARS) return true;
+    lines.push(line);
+    chars += line.length + 1;
+    return false;
+  });
+  const label = what.length ? ' (' + what.join(', ') + ')' : '';
+  if (!lines.length) return 'Tidak ada transaksi' + label + ' 🤖';
+  const more = rows.length - lines.length;
+  return '🧾 ' + lines.length + ' transaksi' + (f.date || range ? '' : ' terakhir') + label + ':\n\n' + lines.join('\n') +
+    (more > 0 && (lines.length < limit || !f.limit) ? '\n\n…dan ' + more + ' lainnya, tambah filter atau jumlah.' : '');
 }
 
 // Balance = opening balance + income - expense - saving, with transfers moving money between accounts.
@@ -636,7 +691,7 @@ function tabunganTotal_(ctx, rows) {
 function answerQuery_(q, ctx) {
   if (!q) return 'Pertanyaan tidak jelas. Contoh: "pengeluaran minggu ini?".';
   if (q.metric === 'account_balance') return balanceReply_(ctx, q.account, q.account_kind);
-  if (q.metric === 'recent') return recentReply_(q.limit);
+  if (q.metric === 'recent') return listReply_(q, ctx);
   if (q.metric === 'category_trend') return trendReply_(String(q.category || q.merchant || '').trim(), ctx);
 
   const range = periodRange_(q.period || 'month');

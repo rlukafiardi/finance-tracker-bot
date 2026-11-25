@@ -91,10 +91,26 @@ function bot(parsed) {
   const good = bot({ intent: 'log', transactions: [tx(35000)] });
   good.ctx.handleMessage_({ text: 'makan siang 35rb gofood' }, {});
   assert.deepStrictEqual([good.log.prepared, good.log.asked, good.log.sent.length], [1, 1, 0], 'a correct amount goes on to the preview');
-  const q = bot({ intent: 'query', transactions: [], query: { metric: 'recent', limit: 5 } });
+  const q = bot({ intent: 'query', transactions: [], query: { metric: 'spending', period: 'week' } });
   q.ctx.answerQuery_ = () => 'ok';
-  q.ctx.handleMessage_({ text: '5 transaksi terakhir' }, {});
+  q.ctx.handleMessage_({ text: 'pengeluaran minggu ini 5 kali?' }, {});
   assert.ok(q.log.sent.every((s) => !s.includes('tidak ada di tulisanmu')), 'a query with no amount claim is not blocked');
+}
+
+{
+  // a list request is answered in code: Gemini is never called, the filters reach listReply_
+  const l = bot({ intent: 'query', transactions: [], query: { metric: 'recent' } });
+  let geminiCalls = 0;
+  l.ctx.parseMessage_ = () => { geminiCalls++; return { intent: 'query', transactions: [], query: { metric: 'recent' } }; };
+  l.ctx.getAccounts_ = () => [{ name: 'GoPay', opening: 0 }];
+  let seen;
+  l.ctx.listReply_ = (f) => { seen = plain(f); return 'list'; };
+  l.ctx.handleMessage_({ text: 'List 10 transaksi terakhir pake gopay' }, {});
+  assert.strictEqual(geminiCalls, 0, 'Gemini not called for a list request');
+  assert.deepStrictEqual(seen, { limit: 10, account: 'gopay' });
+  assert.deepStrictEqual(l.log.sent, ['list']);
+  l.ctx.handleMessage_({ text: 'pengeluaran minggu ini?' }, {});
+  assert.strictEqual(geminiCalls, 1, 'other queries still go to Gemini');
 }
 
 console.log('Amount tests OK (' + table.length + ' phrasings, ' + examples.length + ' golden examples, ' + withAmounts + ' with amounts)');

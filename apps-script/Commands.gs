@@ -26,7 +26,8 @@ const HELP_TEXT = [
   '› savings rate bulan ini?',
   '› saldo semua akun? · saldo gopay?',
   '› berapa tabunganku sekarang?',
-  '› 5 transaksi terakhir',
+  '› 5 transaksi terakhir · list transaksi tgl 17 november',
+  '› 10 transaksi terakhir pake gopay · list 10 transaksi kategori Transport',
   '› rekap bulan lalu · rekap september · rekap bulan ini',
   '› tren kategori · tren makan (6 bulan terakhir)',
   '',
@@ -133,7 +134,7 @@ function handleCommand_(text, ctx) {
     case '/email':
       return prepareEmailImport_(ctx);
     case '/terakhir':
-      return recentReply_(args[0]);
+      return listReply_(parseListArgs_(args, ctx), ctx);
     case '/hapus':
       return args.length ? prepareDeleteById_(args[0].replace(/^#/, '')) : prepareDeleteLast_();
     default:
@@ -155,6 +156,64 @@ function parseRecapMonth_(args) {
   if (month < 1 || month > 12) return 'invalid';
   const year = /^\d{4}$/.test(args[1] || '') ? Number(args[1]) : Number(today.slice(0, 4)) - (month > Number(today.slice(5, 7)) ? 1 : 0);
   return year + '-' + ('0' + month).slice(-2);
+}
+
+// The most recent day:month that has started (no year given), "YYYY-MM-DD", or null when that day does not exist.
+function pastDate_(day, month) {
+  const today = todayStr_();
+  const iso = function (y) { return y + '-' + ('0' + month).slice(-2) + '-' + ('0' + day).slice(-2); };
+  const year = Number(today.slice(0, 4)) - (iso(today.slice(0, 4)) > today ? 1 : 0);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return d.getUTCMonth() === month - 1 && d.getUTCDate() === day ? iso(year) : null;
+}
+
+const LIST_FILLER = ['terakhir', 'tgl', 'tanggal', 'kategori', 'akun', 'rekening', 'dong', 'ya', 'deh', 'aja', 'apa', 'sih', 'tolong',
+  'pake', 'pakai', 'dengan', 'di', 'dari', 'yang', 'toko'];
+
+// "list 10 transaksi terakhir pake gopay", "list transaksi tgl 17 november", "5 transaksi terakhir", "transaksi kemarin apa aja?"
+// -> the /terakhir arguments (["10", "gopay"]); null when the message is not a list request. Read in code because Gemini
+// sometimes returned the metric without the limit, account or date (seen 2026-11-25).
+function parseListMessage_(text) {
+  const t = String(text).trim().toLowerCase().replace(/[?!.,]+$/, '');
+  const m = t.match(/^(?:(?:list|daftar|lihat|tampilkan|show)\s+(?:(\d+)\s+)?transaksi|(\d+)\s+transaksi(?=\s+terakhir\b)|transaksi(?=\s+(?:terakhir|kemarin|hari ini|tgl|tanggal)\b))\s*(.*)$/);
+  if (!m) return null;
+  const limit = m[1] || m[2];
+  return (limit ? [limit] : []).concat(m[3].split(/\s+/).filter(function (w) { return w && LIST_FILLER.indexOf(w) < 0; }));
+}
+
+// /terakhir 10 · gopay 10 · transport 10 · 17 nov · 17/11 · 2026-11-17 · kemarin · hari ini -> listReply_ filter.
+// A lone number is the limit; the words left over name an account, else a category, else a merchant.
+function parseListArgs_(args, ctx) {
+  const f = {};
+  const words = [];
+  for (let i = 0; i < args.length; i++) {
+    const w = args[i].toLowerCase();
+    const next = String(args[i + 1] || '').toLowerCase();
+    const slash = w.match(/^(\d{1,2})\/(\d{1,2})$/);
+    if (/^\d{1,2}$/.test(w) && hasKey_(EMAIL_MONTHS, next.slice(0, 3))) {
+      f.date = pastDate_(Number(w), EMAIL_MONTHS[next.slice(0, 3)]) || 'invalid';
+      i++;
+    } else if (slash) {
+      f.date = pastDate_(Number(slash[1]), Number(slash[2])) || 'invalid';
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(w)) {
+      f.date = w;
+    } else if (w === 'kemarin') {
+      f.date = Utilities.formatDate(new Date(Date.parse(todayStr_() + 'T00:00:00Z') - 86400000), TZ, 'yyyy-MM-dd');
+    } else if (w === 'hari' && next === 'ini') {
+      f.date = todayStr_();
+      i++;
+    } else if (/^\d+$/.test(w)) {
+      f.limit = Number(w);
+    } else {
+      words.push(args[i]);
+    }
+  }
+  const word = words.join(' ');
+  if (!word) return f;
+  if (matchAccount_(word, ctx.accounts)) f.account = word;
+  else if (findCategories_(word, ctx).length === 1) f.category = word;
+  else f.merchant = word;
+  return f;
 }
 
 // /budget -> status; /budget makan 1,5jt -> set the monthly limit; /budget makan 0 -> remove it

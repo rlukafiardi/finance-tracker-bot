@@ -8,7 +8,7 @@
     "status": "clasp --auth .clasp-auth/.clasprc.json show-file-status",
     "push": "npm run check && clasp --auth .clasp-auth/.clasprc.json push --force",
     "deploy": "npm run push && clasp --auth .clasp-auth/.clasprc.json deploy -i AKfycbzeRalkgF-LMlpnPoqzNUIE7pd3m12WHWjQhY2hS-g1fFwmsBGpozGB85nIJov2ENFzsA -d \"npm run deploy\"",
-    "test:app": "node scripts/test-app.js && node scripts/test-dashboard.js && node scripts/test-amounts.js && node scripts/test-app-save.js && node scripts/e2e-app.js && node scripts/e2e-form.js"
+    "test:app": "node scripts/test-app.js && node scripts/test-dashboard.js && node scripts/test-amounts.js && node scripts/test-list.js && node scripts/test-app-save.js && node scripts/e2e-app.js && node scripts/e2e-form.js"
   },
   "repository": {
     "type": "git",

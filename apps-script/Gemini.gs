@@ -56,6 +56,7 @@ const RESPONSE_SCHEMA = {
         period: { type: 'STRING', enum: ['today', 'week', 'month', 'all', 'custom'], nullable: true },
         account_kind: { type: 'STRING', enum: ['bank', 'ewallet', 'cash', 'tabungan', 'investasi', 'lainnya'], nullable: true },
         limit: { type: 'INTEGER', nullable: true },
+        date: { type: 'STRING', nullable: true },
         category: { type: 'STRING', nullable: true },
         account: { type: 'STRING', nullable: true },
         merchant: { type: 'STRING', nullable: true },

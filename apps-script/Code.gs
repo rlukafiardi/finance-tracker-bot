@@ -125,6 +125,11 @@ function handleMessage_(msg, to) {
         sendMessage_(to, trendReply_(trendWord, ctx));
         return;
       }
+      const listArgs = parseListMessage_(msg.text); // list requests too: no Gemini call, no dropped filter
+      if (listArgs !== null) {
+        sendMessage_(to, listReply_(parseListArgs_(listArgs, ctx), ctx));
+        return;
+      }
       const parsed = parseMessage_(msg.text, null, ctx);
       const mismatch = amountProblem_(msg.text, parsed);
       if (mismatch) {

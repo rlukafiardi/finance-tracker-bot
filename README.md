@@ -60,7 +60,7 @@ Telegram with 200 itself and forwards the update to Apps Script.
 | `pengeluaran minggu ini?` / `savings rate bulan ini?` | Summaries (today, week, month, or `sampai sekarang`) |
 | `berapa total gofood bulan ini?` / `pengeluaran pake gopay minggu ini?` | Spending at a merchant (name contains the word) or from one account, with the count |
 | `saldo gopay?` / `berapa tabunganku sekarang?` / `investasiku?` | Current balances |
-| `5 transaksi terakhir` | Latest entries |
+| `5 transaksi terakhir` / `list transaksi tgl 17 november` / `10 transaksi terakhir pake gopay` / `list 10 transaksi kategori Transport` | Entries with their ids, newest date first; filter by date, account (transfers into it count), category (partial name ok) or merchant; a date alone lists the whole day, up to 30 |
 | `tiap tanggal 25 biaya admin bca 12,5rb` / `gaji tiap tanggal 1 15jt masuk bca` | Add a recurring monthly entry (✅/❌ first). See Recurring entries |
 | `daftar rutin` / `hapus rutin biaya admin` | List / remove recurring entries |
 | `rekap bulan lalu` / `rekap september` / `rekap bulan ini` | The monthly recap of that month (same as `/rekap`), no backup. A month name without a year is the most recent such month; the running month is marked "(berjalan)" and has no comparison. "Tabungan sekarang" is always today's balance |
@@ -79,7 +79,7 @@ shortcuts that skip the Gemini call.
 | `/akun BCA jadi BCA Utama` | Rename an account (also `->`) |
 | `/budget makan 1,5jt` / `/budget makan 0` / `/budget` | Set, remove, show monthly budgets |
 | `/kategori` / `/kategori expense Hobi` | List / add categories |
-| `/terakhir 10` | Latest entries with their ids |
+| `/terakhir 10` / `/terakhir gopay 10` / `/terakhir transport 10` / `/terakhir 17 nov` | Latest entries with their ids, optionally by account, category, merchant or date (`17 nov`, `17/11`, `2026-11-17`, `kemarin`, `hari ini`) |
 | `/rutin` / `/rutin hapus <id>` | List / remove recurring entries (adding is by chat) |
 | `/rekap` / `/rekap september` / `/rekap sep 2025` / `/rekap 2026-08` / `/rekap ini` | Monthly recap of last month or the chosen month |
 | `/hapus a1b2c3d4` | Delete one transaction by id |
