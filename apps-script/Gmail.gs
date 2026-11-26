@@ -266,6 +266,11 @@ function prepareEmailImport_(ctx) {
       collectNewAccounts_(n.newAccounts, ctx, newAccounts);
     });
   });
+  if (!txs.length) { // every fresh email was rejected: settle them now, an empty confirmation could never be saved
+    markEmails_(duplicates.map(idOf), 'duplicate');
+    markEmails_(unsupported.map(idOf), 'unsupported');
+    return { reply: '📧 Tidak ada transaksi baru untuk dicatat.' + emailNotes_(duplicates, unsupported, fresh.length - batch.length, geminiFailed) };
+  }
   const action = {
     kind: 'emails', txs: txs, emailIds: usable.map(idOf), duplicateIds: duplicates.map(idOf),
     unsupportedIds: unsupported.map(idOf), newAccounts: newAccounts, newCategories: [],
